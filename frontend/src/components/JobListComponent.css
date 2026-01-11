@@ -1,0 +1,154 @@
+.job-list-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.job-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.job-list-header h2 {
+  margin: 0;
+}
+
+.new-job-button {
+  padding: 0.75rem 1.5rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.new-job-button:hover {
+  background-color: #0056b3;
+}
+
+.job-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.job-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.job-item:hover {
+  background-color: #f9f9f9;
+  border-color: #007bff;
+}
+
+.job-item.completed {
+  border-left: 4px solid #28a745;
+}
+
+.job-item.processing {
+  border-left: 4px solid #ffc107;
+}
+
+.job-item.pending {
+  border-left: 4px solid #6c757d;
+}
+
+.job-item.failed {
+  border-left: 4px solid #dc3545;
+}
+
+.job-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.job-name {
+  font-weight: 600;
+  color: #333;
+  word-break: break-all;
+}
+
+.job-date {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.pending {
+  background-color: #e9ecef;
+  color: #6c757d;
+}
+
+.status-badge.processing {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.failed {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.empty-state p {
+  margin-bottom: 1rem;
+  color: #666;
+}
+
+.empty-state button {
+  padding: 0.75rem 1.5rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.empty-state button:hover {
+  background-color: #0056b3;
+}
+
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 2rem;
+}
+
+.error-state button {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}

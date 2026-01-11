@@ -1,0 +1,72 @@
+from datetime import datetime
+
+from celery import shared_task
+
+from app.celery_app import celery_app
+from app.models.database import SessionLocal
+from app.models.job import AnalysisJob, JobStatus
+
+
+@celery_app.task(bind=True, max_retries=3)
+def analyze_video(self, job_id: str, video_path: str, metadata: dict) -> dict:
+    """
+    動画解析タスク
+
+    Args:
+        job_id: 解析ジョブID
+        video_path: 動画ファイルパス（Storage内）
+        metadata: メタ情報（purpose, platform, target_audience）
+
+    Returns:
+        解析結果のサマリー
+
+    Raises:
+        タスク失敗時は自動リトライ後にfailed状態に更新
+    """
+    db = SessionLocal()
+    try:
+        job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
+        if not job:
+            return {"error": f"Job {job_id} not found"}
+
+        job.status = JobStatus.processing
+        db.commit()
+
+        from app.services.orchestrator import OrchestratorService
+        from app.services.progress import ProgressService
+
+        progress_service = ProgressService()
+        orchestrator = OrchestratorService(progress_service)
+
+        try:
+            result = orchestrator.run_analysis(job_id, video_path, metadata)
+
+            job.status = JobStatus.completed
+            job.completed_at = datetime.utcnow()
+            job.overall_score = result.get("overall_score")
+            job.risk_level = result.get("risk_level")
+            job.transcription_result = result.get("transcription")
+            job.ocr_result = result.get("ocr")
+            job.video_analysis_result = result.get("video_analysis")
+            db.commit()
+
+            return {
+                "job_id": job_id,
+                "status": "completed",
+                "overall_score": result.get("overall_score"),
+                "risk_count": len(result.get("risks", [])),
+            }
+
+        except Exception as e:
+            job.status = JobStatus.failed
+            job.error_message = str(e)
+            job.completed_at = datetime.utcnow()
+            db.commit()
+
+            if self.request.retries < self.max_retries:
+                raise self.retry(exc=e)
+
+            return {"job_id": job_id, "status": "failed", "error": str(e)}
+
+    finally:
+        db.close()
