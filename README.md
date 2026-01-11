@@ -10,6 +10,16 @@ SNS投稿前の動画コンテンツに対する炎上リスクチェック支�
 - **差別性**: 人種・性別・性的指向などへの偏見に基づく表現
 - **誤解を招く表現**: 断定的・誇張・ステレオタイプに基づく表現
 
+## 追加機能
+
+追加のエージェント要素として、以下の能力を提供：
+
+- **時系列のリスク提示**: タイムラインで高リスク箇所を可視化
+- **根拠の説明**: 短い推論コメントで根拠提示
+- **対応方針の提案**: Cut / Edit / Defend の3案提示
+- **編集実行の支援**: 選択案の適用と結果の確認・ダウンロード
+- **外部知識との照合**: 過去事例や社会情勢との近さを参考情報として提示（最新ニュース/トレンド反映）
+
 ## 技術スタック
 
 | レイヤー | 技術 |
@@ -19,7 +29,7 @@ SNS投稿前の動画コンテンツに対する炎上リスクチェック支�
 | Task Queue | Celery 5.x + Redis 7 |
 | Database | PostgreSQL 15 |
 | Storage | MinIO (ローカル) / GCS (本番) |
-| AI/ML | Google Cloud Speech-to-Text, Video Intelligence API, Gemini API |
+| AI/ML | Google Cloud Speech-to-Text, Video Intelligence API, Gemini API, Vertex AI Vector Search, Vertex AI Search Grounding |
 
 ## 必要条件
 
@@ -29,6 +39,9 @@ SNS投稿前の動画コンテンツに対する炎上リスクチェック支�
   - Cloud Speech-to-Text API
   - Video Intelligence API
   - Vertex AI API (Gemini)
+  - Vertex AI Vector Search
+  - Vertex AI Search Grounding
+- サービスアカウントキー（JSONファイル）
 
 ## セットアップ
 
