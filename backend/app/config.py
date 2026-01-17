@@ -19,7 +19,6 @@ class Settings(BaseSettings):
 
     # Google Cloud
     google_cloud_project: str = ""
-    google_application_credentials: str = ""
 
     # Application
     max_file_size_mb: int = 100
