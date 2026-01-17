@@ -53,6 +53,7 @@ credentials/*
 *.json
 !package.json
 !tsconfig.json
+!tsconfig.node.json
 !.devcontainer/devcontainer.json
 
 # Docker
