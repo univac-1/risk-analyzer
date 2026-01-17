@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from celery import shared_task
@@ -5,6 +6,8 @@ from celery import shared_task
 from app.celery_app import celery_app
 from app.models.database import SessionLocal
 from app.models.job import AnalysisJob, JobStatus
+
+logger = logging.getLogger(__name__)
 
 
 @celery_app.task(bind=True, max_retries=3)
@@ -23,10 +26,13 @@ def analyze_video(self, job_id: str, video_path: str, metadata: dict) -> dict:
     Raises:
         タスク失敗時は自動リトライ後にfailed状態に更新
     """
+    logger.info(f"解析タスク開始: job_id={job_id}, video_path={video_path}")
+
     db = SessionLocal()
     try:
         job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
         if not job:
+            logger.error(f"ジョブが見つかりません: job_id={job_id}")
             return {"error": f"Job {job_id} not found"}
 
         job.status = JobStatus.processing
@@ -50,6 +56,12 @@ def analyze_video(self, job_id: str, video_path: str, metadata: dict) -> dict:
             job.video_analysis_result = result.get("video_analysis")
             db.commit()
 
+            logger.info(
+                f"解析タスク完了: job_id={job_id}, "
+                f"overall_score={result.get('overall_score')}, "
+                f"risk_count={len(result.get('risks', []))}"
+            )
+
             return {
                 "job_id": job_id,
                 "status": "completed",
@@ -58,12 +70,18 @@ def analyze_video(self, job_id: str, video_path: str, metadata: dict) -> dict:
             }
 
         except Exception as e:
+            logger.error(
+                f"解析タスク失敗: job_id={job_id}, error={e}, "
+                f"retry={self.request.retries}/{self.max_retries}",
+                exc_info=True
+            )
             job.status = JobStatus.failed
             job.error_message = str(e)
             job.completed_at = datetime.utcnow()
             db.commit()
 
             if self.request.retries < self.max_retries:
+                logger.info(f"解析タスクリトライ: job_id={job_id}")
                 raise self.retry(exc=e)
 
             return {"job_id": job_id, "status": "failed", "error": str(e)}

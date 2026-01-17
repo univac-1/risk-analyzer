@@ -1,8 +1,11 @@
+import logging
 import os
 import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+
+logger = logging.getLogger(__name__)
 
 from app.config import get_settings
 from app.models.database import SessionLocal
@@ -66,11 +69,18 @@ async def upload_video(
         )
 
     storage_service = StorageService()
-    file_path = storage_service.upload_file(
-        file.file,
-        file.filename,
-        file.content_type or "video/mp4",
-    )
+    try:
+        file_path = storage_service.upload_file(
+            file.file,
+            file.filename,
+            file.content_type or "video/mp4",
+        )
+    except Exception as e:
+        logger.error(f"ストレージへのアップロードに失敗しました: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"ストレージへのアップロードに失敗しました: {str(e)}",
+        )
 
     db = SessionLocal()
     try:
@@ -95,6 +105,8 @@ async def upload_video(
         db.commit()
         db.refresh(job)
         db.refresh(video)
+
+        logger.info(f"動画アップロード成功: job_id={job.id}, file={video.original_name}")
 
         progress_service = ProgressService()
         progress_service.initialize_progress(str(job.id))
@@ -124,8 +136,12 @@ async def upload_video(
         )
 
     except Exception as e:
+        logger.error(f"アップロード処理中にエラーが発生しました: {e}", exc_info=True)
         db.rollback()
-        storage_service.delete_file(file_path)
+        try:
+            storage_service.delete_file(file_path)
+        except Exception as delete_error:
+            logger.warning(f"アップロード失敗後のファイル削除に失敗しました: {delete_error}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"アップロードに失敗しました: {str(e)}",

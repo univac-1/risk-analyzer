@@ -24,11 +24,11 @@ SNS投稿前の動画コンテンツに対する炎上リスクチェック支�
 ## 必要条件
 
 - Docker & Docker Compose
+- gcloud CLI
 - Google Cloud プロジェクト（API有効化済み）
   - Cloud Speech-to-Text API
   - Video Intelligence API
   - Vertex AI API (Gemini)
-- サービスアカウントキー（JSONファイル）
 
 ## セットアップ
 
@@ -46,23 +46,33 @@ cd risk-analyzer
 cp .env.example .env.local
 ```
 
-`.env.local` を編集して、Google Cloud の設定を入力：
+`.env.local` を編集して、Google Cloud プロジェクトIDを入力：
 
 ```env
 # Google Cloud
 GOOGLE_CLOUD_PROJECT=your-project-id
-GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/service-account.json
 ```
 
-### 3. サービスアカウントキーの配置
+### 3. Google Cloud 認証の設定
+
+Application Default Credentials (ADC) を使用します。
 
 ```bash
-# credentialsディレクトリを作成
-mkdir -p backend/credentials
+# gcloud CLI で認証（ブラウザが開きます）
+gcloud auth application-default login
 
-# サービスアカウントキーをコピー
-cp /path/to/your-service-account.json backend/credentials/service-account.json
+# プロジェクトを設定
+gcloud config set project your-project-id
 ```
+
+**Windows の場合**は、追加で環境変数を設定：
+
+```powershell
+# .env.local に追加
+GOOGLE_ADC_PATH=C:\Users\YourName\AppData\Roaming\gcloud
+```
+
+詳細は [docs/gcloud-service-account-setup.md](docs/gcloud-service-account-setup.md) を参照してください。
 
 ## 実行方法
 
@@ -172,16 +182,26 @@ docker-compose exec minio mc mb local/videos
 
 ### Google Cloud API エラー
 
-1. サービスアカウントキーが正しく配置されているか確認
-2. 必要なAPIが有効化されているか確認
-3. サービスアカウントに適切な権限があるか確認
+1. ADC が正しく設定されているか確認
+   ```bash
+   gcloud auth application-default print-access-token
+   ```
 
-```bash
-# 必要な権限
-# - Speech-to-Text: roles/speech.client
-# - Video Intelligence: roles/videointelligence.admin
-# - Vertex AI: roles/aiplatform.user
-```
+2. 必要なAPIが有効化されているか確認
+
+3. アカウントに適切な権限があるか確認
+   ```bash
+   # 必要な権限
+   # - Speech-to-Text: roles/speech.client
+   # - Video Intelligence: roles/videointelligence.admin
+   # - Vertex AI: roles/aiplatform.user
+   ```
+
+4. Docker で ADC がマウントされない場合（Windows）
+   ```powershell
+   $env:GOOGLE_ADC_PATH="$env:APPDATA\gcloud"
+   docker-compose up
+   ```
 
 ### ポートが使用中
 
