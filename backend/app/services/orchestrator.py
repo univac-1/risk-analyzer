@@ -2,7 +2,7 @@ import concurrent.futures
 from typing import Optional
 import traceback
 
-from app.services.progress import ProgressService, PhaseStatus
+from app.services.progress import ProgressService, PhaseStatus, JobStatus
 from app.services.audio_analyzer import AudioAnalyzerService
 from app.services.ocr_analyzer import OCRAnalyzerService
 from app.services.video_analyzer import VideoAnalyzerService
@@ -98,7 +98,10 @@ class OrchestratorService:
             )
             risk_result = {"overall_score": 0, "risk_level": "none", "risks": []}
 
-        self.progress_service.set_job_completed(job_id)
+        # Check current status before marking as complete
+        current_progress = self.progress_service.get_progress(job_id)
+        if current_progress and current_progress.get("status") != JobStatus.failed.value:
+            self.progress_service.set_job_completed(job_id)
 
         return {
             "transcription": transcription_result,

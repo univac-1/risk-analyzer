@@ -97,7 +97,7 @@ class AudioAnalyzerService:
         config = cloud_speech.RecognitionConfig(
             auto_decoding_config=cloud_speech.AutoDetectDecodingConfig(),
             language_codes=["ja-JP"],
-            model="chirp_2",
+            model="chirp",
             features=cloud_speech.RecognitionFeatures(
                 enable_word_time_offsets=True,
                 enable_automatic_punctuation=True,

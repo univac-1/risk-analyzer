@@ -70,7 +70,7 @@ class VideoAnalyzerService:
         self.storage_service = StorageService()
         if settings.google_cloud_project:
             vertexai.init(project=settings.google_cloud_project, location="us-central1")
-        self.model = GenerativeModel("gemini-2.5-pro")
+        self.model = GenerativeModel("gemini-2.0-flash-001")
 
     def extract_frames(self, video_path: str, interval: float = 2.0) -> list[tuple[float, str]]:
         """
@@ -293,4 +293,4 @@ class VideoAnalyzerService:
                 }
                 for frame in result.frames
             ]
-        }
+        }1
