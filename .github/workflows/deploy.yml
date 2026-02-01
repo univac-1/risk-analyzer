@@ -221,23 +221,25 @@ jobs:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
-      - name: Debug - Check image outputs
+      - name: Set image variables
+        id: images
         run: |
-          echo "Frontend image: ${{ needs.build.outputs.frontend_image }}"
-          echo "Backend image: ${{ needs.build.outputs.backend_image }}"
-          echo "Worker image: ${{ needs.build.outputs.worker_image }}"
-          echo "Version: ${{ needs.build.outputs.version }}"
-          if [ -z "${{ needs.build.outputs.frontend_image }}" ]; then
-            echo "ERROR: Frontend image is empty!"
-            exit 1
-          fi
+          VERSION=${{ needs.build.outputs.version }}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "frontend=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "backend=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "worker=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.WORKER_SERVICE }}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "=== Images to deploy ==="
+          echo "Frontend: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${VERSION}"
+          echo "Backend: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${VERSION}"
+          echo "Worker: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.WORKER_SERVICE }}:${VERSION}"
 
       - name: Deploy Frontend to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.FRONTEND_SERVICE }}
           region: ${{ env.REGION }}
-          image: ${{ needs.build.outputs.frontend_image }}
+          image: ${{ steps.images.outputs.frontend }}
           flags: |
             --port=8080
             --allow-unauthenticated
@@ -251,7 +253,7 @@ jobs:
         with:
           service: ${{ env.BACKEND_SERVICE }}
           region: ${{ env.REGION }}
-          image: ${{ needs.build.outputs.backend_image }}
+          image: ${{ steps.images.outputs.backend }}
           flags: |
             --port=8000
             --allow-unauthenticated
@@ -274,7 +276,7 @@ jobs:
         with:
           service: ${{ env.WORKER_SERVICE }}
           region: ${{ env.REGION }}
-          image: ${{ needs.build.outputs.worker_image }}
+          image: ${{ steps.images.outputs.worker }}
           flags: |
             --no-allow-unauthenticated
             --memory=2Gi
