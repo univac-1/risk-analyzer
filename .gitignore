@@ -50,6 +50,7 @@ coverage.xml
 # JSON files (except config files)
 *.json
 !package.json
+!package-lock.json
 !tsconfig.json
 !tsconfig.node.json
 !.devcontainer/devcontainer.json
