@@ -278,12 +278,14 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ steps.images.outputs.worker }}
           flags: |
+            --port=8080
             --no-allow-unauthenticated
             --memory=2Gi
             --cpu=2
             --min-instances=1
             --max-instances=5
             --timeout=3600
+            --no-cpu-throttling
             --add-cloudsql-instances=${{ secrets.DB_CONNECTION_NAME }}
             --vpc-connector=risk-analyzer-connector
           env_vars: |
