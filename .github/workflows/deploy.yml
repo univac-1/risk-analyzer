@@ -98,6 +98,13 @@ jobs:
       version: ${{ steps.version.outputs.version }}
 
     steps:
+      - name: Debug - Build job started
+        run: |
+          echo "=== BUILD JOB STARTED ==="
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "github.ref: ${{ github.ref }}"
+          echo "PROJECT_ID from env: ${{ env.PROJECT_ID }}"
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -189,6 +196,7 @@ jobs:
   # ===========================================
   deploy:
     needs: build
+    if: needs.build.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
