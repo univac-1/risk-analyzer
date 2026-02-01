@@ -108,6 +108,16 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Deploying version: ${VERSION}"
 
+      - name: Validate environment
+        run: |
+          echo "PROJECT_ID: ${{ env.PROJECT_ID }}"
+          echo "REGION: ${{ env.REGION }}"
+          echo "REPOSITORY: ${{ env.REPOSITORY }}"
+          if [ -z "${{ env.PROJECT_ID }}" ]; then
+            echo "ERROR: PROJECT_ID is empty! Please set GCP_PROJECT_ID secret."
+            exit 1
+          fi
+
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
