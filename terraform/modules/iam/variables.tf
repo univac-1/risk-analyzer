@@ -35,6 +35,9 @@ variable "roles" {
     "roles/aiplatform.user",
     "roles/secretmanager.secretAccessor",
     "roles/redis.editor",
+    "roles/artifactregistry.writer",
+    "roles/run.admin",
+    "roles/iam.serviceAccountUser",
   ]
 }
 
