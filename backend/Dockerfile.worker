@@ -16,8 +16,9 @@ RUN poetry config virtualenvs.create false \
 
 COPY . .
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY worker_entrypoint.sh /worker_entrypoint.sh
+RUN chmod +x /worker_entrypoint.sh
 
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["celery", "-A", "app.celery_app", "worker", "--loglevel=info"]
+EXPOSE 8080
+
+CMD ["/worker_entrypoint.sh"]
