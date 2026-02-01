@@ -125,8 +125,10 @@ jobs:
       - name: Build and push Frontend
         id: build-frontend
         run: |
+          set -e
           VERSION=${{ steps.version.outputs.version }}
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}"
+          echo "Building image: ${IMAGE}:${VERSION}"
           docker build \
             --build-arg VITE_API_URL=https://${{ env.BACKEND_SERVICE }}-${{ secrets.GCP_PROJECT_NUMBER }}.${{ env.REGION }}.run.app \
             -t ${IMAGE}:${VERSION} \
@@ -136,12 +138,15 @@ jobs:
           docker push ${IMAGE}:${VERSION}
           docker push ${IMAGE}:latest
           echo "image=${IMAGE}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "Frontend image output set to: ${IMAGE}:${VERSION}"
 
       - name: Build and push Backend
         id: build-backend
         run: |
+          set -e
           VERSION=${{ steps.version.outputs.version }}
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}"
+          echo "Building image: ${IMAGE}:${VERSION}"
           docker build \
             -t ${IMAGE}:${VERSION} \
             -t ${IMAGE}:latest \
@@ -150,12 +155,15 @@ jobs:
           docker push ${IMAGE}:${VERSION}
           docker push ${IMAGE}:latest
           echo "image=${IMAGE}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "Backend image output set to: ${IMAGE}:${VERSION}"
 
       - name: Build and push Worker
         id: build-worker
         run: |
+          set -e
           VERSION=${{ steps.version.outputs.version }}
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.WORKER_SERVICE }}"
+          echo "Building image: ${IMAGE}:${VERSION}"
           docker build \
             -t ${IMAGE}:${VERSION} \
             -t ${IMAGE}:latest \
@@ -164,6 +172,7 @@ jobs:
           docker push ${IMAGE}:${VERSION}
           docker push ${IMAGE}:latest
           echo "image=${IMAGE}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "Worker image output set to: ${IMAGE}:${VERSION}"
 
   # ===========================================
   # Deploy Job
@@ -181,6 +190,17 @@ jobs:
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Debug - Check image outputs
+        run: |
+          echo "Frontend image: ${{ needs.build.outputs.frontend_image }}"
+          echo "Backend image: ${{ needs.build.outputs.backend_image }}"
+          echo "Worker image: ${{ needs.build.outputs.worker_image }}"
+          echo "Version: ${{ needs.build.outputs.version }}"
+          if [ -z "${{ needs.build.outputs.frontend_image }}" ]; then
+            echo "ERROR: Frontend image is empty!"
+            exit 1
+          fi
 
       - name: Deploy Frontend to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
