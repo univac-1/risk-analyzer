@@ -28,7 +28,14 @@ def test_initialize_progress(progress_service, mock_redis):
 
 def test_update_progress(progress_service, mock_redis):
     job_id = "test-job-123"
-    mock_redis.get.return_value = '{"job_id": "test-job-123", "status": "pending", "overall": 0.0, "phases": {"audio": {"status": "pending", "progress": 0.0}, "ocr": {"status": "pending", "progress": 0.0}, "video": {"status": "pending", "progress": 0.0}, "risk": {"status": "pending", "progress": 0.0}}, "estimated_remaining_seconds": null}'
+    progress_json = '{"job_id": "test-job-123", "status": "pending", "overall": 0.0, "phases": {"audio": {"status": "pending", "progress": 0.0}, "ocr": {"status": "pending", "progress": 0.0}, "video": {"status": "pending", "progress": 0.0}, "risk": {"status": "pending", "progress": 0.0}}, "estimated_remaining_seconds": null}'
+
+    def mock_get(key):
+        if "start_time" in key:
+            return "1700000000.0"
+        return progress_json
+
+    mock_redis.get.side_effect = mock_get
 
     progress_service.update_progress(
         job_id, "audio", PhaseStatus.processing, 50.0
