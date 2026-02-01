@@ -1,9 +1,12 @@
 #!/bin/bash
-set -e
 
 echo "Running database migrations..."
-alembic upgrade head
-echo "Migrations completed."
+if alembic upgrade head; then
+    echo "Migrations completed successfully."
+else
+    echo "Warning: Database migration failed. Starting server anyway..."
+    echo "Please run migrations manually or check database connectivity."
+fi
 
 # 元のコマンドを実行
 exec "$@"
