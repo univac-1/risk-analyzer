@@ -17,10 +17,17 @@ from app.models.job import AnalysisJob, Video, RiskItem
 target_metadata = Base.metadata
 
 def get_url():
-    return os.getenv(
+    url = os.getenv(
         "DATABASE_URL",
         "postgresql://postgres:postgres@localhost:5432/video_risk_analyzer"
     )
+    # Convert async driver to sync driver for Alembic
+    # asyncpg -> psycopg2 (or default postgresql driver)
+    if "+asyncpg" in url:
+        url = url.replace("postgresql+asyncpg", "postgresql+psycopg2")
+    elif "+aiosqlite" in url:
+        url = url.replace("sqlite+aiosqlite", "sqlite")
+    return url
 
 
 def run_migrations_offline() -> None:
