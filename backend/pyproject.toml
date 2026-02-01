@@ -32,6 +32,7 @@ pytest-cov = "^4.1.0"
 httpx = "^0.26.0"
 fakeredis = "^2.21.0"
 moto = {extras = ["s3"], version = "^5.0.0"}
+aiosqlite = "^0.19.0"
 
 [build-system]
 requires = ["poetry-core"]
