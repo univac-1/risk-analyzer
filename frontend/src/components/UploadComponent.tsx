@@ -1,4 +1,4 @@
-import { useState, useCallback, DragEvent, ChangeEvent } from 'react'
+import { useState, DragEvent, ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
 import { Platform, AnalysisJob } from '../types'
