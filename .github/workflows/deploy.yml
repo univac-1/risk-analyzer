@@ -92,9 +92,9 @@ jobs:
       id-token: write
 
     outputs:
-      frontend_image: ${{ steps.build-frontend.outputs.image }}
-      backend_image: ${{ steps.build-backend.outputs.image }}
-      worker_image: ${{ steps.build-worker.outputs.image }}
+      frontend_image: ${{ steps.set-outputs.outputs.frontend_image }}
+      backend_image: ${{ steps.set-outputs.outputs.backend_image }}
+      worker_image: ${{ steps.set-outputs.outputs.worker_image }}
       version: ${{ steps.version.outputs.version }}
 
     steps:
@@ -190,6 +190,18 @@ jobs:
           docker push ${IMAGE}:latest
           echo "image=${IMAGE}:${VERSION}" >> $GITHUB_OUTPUT
           echo "Worker image output set to: ${IMAGE}:${VERSION}"
+
+      - name: Set image outputs
+        id: set-outputs
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          echo "frontend_image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "backend_image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "worker_image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.WORKER_SERVICE }}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "=== Outputs set ==="
+          echo "frontend_image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${VERSION}"
+          echo "backend_image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${VERSION}"
+          echo "worker_image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.WORKER_SERVICE }}:${VERSION}"
 
   # ===========================================
   # Deploy Job
