@@ -4,13 +4,18 @@ import traceback
 import logging
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 from app.services.progress import ProgressService, PhaseStatus, JobStatus
 =======
 from app.services.progress import ProgressService, PhaseStatus
+=======
+from app.services.progress import ProgressService, PhaseStatus, JobStatus
+>>>>>>> 5552441 (fix: 動画解析の停止および誤った完了ステータス表示の修正)
 
 logger = logging.getLogger(__name__)
 >>>>>>> 6bcfe2f (Add detailed logging for each analysis phase)
 from app.services.audio_analyzer import AudioAnalyzerService
+<<<<<<< HEAD
 from app.services.ocr_analyzer import OCRAnalyzerService
 from app.services.video_analyzer import VideoAnalyzerService
 from app.services.risk_evaluator import RiskEvaluatorService
@@ -318,3 +323,7 @@ class OrchestratorService:
             raise
         finally:
             db.close()
+=======
+from app.services.progress import ProgressService, PhaseStatus, JobStatus
+logger = logging.getLogger(__name__)
+>>>>>>> 5552441 (fix: 動画解析の停止および誤った完了ステータス表示の修正)
