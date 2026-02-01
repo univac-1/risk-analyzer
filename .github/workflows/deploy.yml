@@ -1,0 +1,248 @@
+name: Build and Deploy to Cloud Run
+
+on:
+  push:
+    tags:
+      - 'v*'  # v1.0.0, v1.2.3 など
+  pull_request:
+    branches:
+      - master
+      - main
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: asia-northeast1
+  REPOSITORY: risk-analyzer
+  FRONTEND_SERVICE: risk-analyzer-frontend
+  BACKEND_SERVICE: risk-analyzer-backend
+  WORKER_SERVICE: risk-analyzer-worker
+
+jobs:
+  # ===========================================
+  # Test Job
+  # ===========================================
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/.venv
+          key: venv-${{ runner.os }}-${{ hashFiles('backend/poetry.lock') }}
+
+      - name: Install dependencies
+        working-directory: backend
+        run: poetry install --no-interaction
+
+      - name: Run tests
+        working-directory: backend
+        run: poetry run pytest --cov=app --cov-report=xml
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/0
+          CELERY_RESULT_BACKEND: redis://localhost:6379/0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint --if-present
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:8000
+
+  # ===========================================
+  # Build and Push Job
+  # ===========================================
+  build:
+    needs: test
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      frontend_image: ${{ steps.build-frontend.outputs.image }}
+      backend_image: ${{ steps.build-backend.outputs.image }}
+      worker_image: ${{ steps.build-worker.outputs.image }}
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Deploying version: ${VERSION}"
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Frontend
+        id: build-frontend
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}"
+          docker build \
+            --build-arg VITE_API_URL=https://${{ env.BACKEND_SERVICE }}-${{ secrets.GCP_PROJECT_NUMBER }}.${{ env.REGION }}.run.app \
+            -t ${IMAGE}:${VERSION} \
+            -t ${IMAGE}:latest \
+            -f frontend/Dockerfile.prod \
+            frontend
+          docker push ${IMAGE}:${VERSION}
+          docker push ${IMAGE}:latest
+          echo "image=${IMAGE}:${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Backend
+        id: build-backend
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}"
+          docker build \
+            -t ${IMAGE}:${VERSION} \
+            -t ${IMAGE}:latest \
+            -f backend/Dockerfile \
+            backend
+          docker push ${IMAGE}:${VERSION}
+          docker push ${IMAGE}:latest
+          echo "image=${IMAGE}:${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Worker
+        id: build-worker
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.WORKER_SERVICE }}"
+          docker build \
+            -t ${IMAGE}:${VERSION} \
+            -t ${IMAGE}:latest \
+            -f backend/Dockerfile.worker \
+            backend
+          docker push ${IMAGE}:${VERSION}
+          docker push ${IMAGE}:latest
+          echo "image=${IMAGE}:${VERSION}" >> $GITHUB_OUTPUT
+
+  # ===========================================
+  # Deploy Job
+  # ===========================================
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Deploy Frontend to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.FRONTEND_SERVICE }}
+          region: ${{ env.REGION }}
+          image: ${{ needs.build.outputs.frontend_image }}
+          flags: |
+            --port=8080
+            --allow-unauthenticated
+            --memory=256Mi
+            --cpu=1
+            --min-instances=0
+            --max-instances=3
+
+      - name: Deploy Backend to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.BACKEND_SERVICE }}
+          region: ${{ env.REGION }}
+          image: ${{ needs.build.outputs.backend_image }}
+          flags: |
+            --port=8000
+            --allow-unauthenticated
+            --memory=1Gi
+            --cpu=2
+            --min-instances=0
+            --max-instances=5
+            --add-cloudsql-instances=${{ secrets.DB_CONNECTION_NAME }}
+            --vpc-connector=risk-analyzer-connector
+          env_vars: |
+            REDIS_URL=redis://${{ secrets.REDIS_HOST }}:6379/0
+            CELERY_BROKER_URL=redis://${{ secrets.REDIS_HOST }}:6379/0
+            CELERY_RESULT_BACKEND=redis://${{ secrets.REDIS_HOST }}:6379/0
+            STORAGE_BUCKET=${{ secrets.GCS_BUCKET }}
+            USE_GCS=true
+            DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.DB_CONNECTION_NAME }}
+
+      - name: Deploy Worker to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.WORKER_SERVICE }}
+          region: ${{ env.REGION }}
+          image: ${{ needs.build.outputs.worker_image }}
+          flags: |
+            --no-allow-unauthenticated
+            --memory=2Gi
+            --cpu=2
+            --min-instances=1
+            --max-instances=5
+            --timeout=3600
+            --add-cloudsql-instances=${{ secrets.DB_CONNECTION_NAME }}
+            --vpc-connector=risk-analyzer-connector
+          env_vars: |
+            REDIS_URL=redis://${{ secrets.REDIS_HOST }}:6379/0
+            CELERY_BROKER_URL=redis://${{ secrets.REDIS_HOST }}:6379/0
+            CELERY_RESULT_BACKEND=redis://${{ secrets.REDIS_HOST }}:6379/0
+            STORAGE_BUCKET=${{ secrets.GCS_BUCKET }}
+            USE_GCS=true
+            DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.DB_CONNECTION_NAME }}
+
+      - name: Show deployment URLs
+        run: |
+          echo "Frontend URL: https://${{ env.FRONTEND_SERVICE }}-${{ secrets.GCP_PROJECT_NUMBER }}.${{ env.REGION }}.run.app"
+          echo "Backend URL: https://${{ env.BACKEND_SERVICE }}-${{ secrets.GCP_PROJECT_NUMBER }}.${{ env.REGION }}.run.app"
