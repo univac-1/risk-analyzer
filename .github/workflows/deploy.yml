@@ -269,7 +269,7 @@ jobs:
             CELERY_RESULT_BACKEND=redis://${{ secrets.REDIS_HOST }}:6379/0
             STORAGE_BUCKET=${{ secrets.GCS_BUCKET }}
             USE_GCS=true
-            DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.DB_CONNECTION_NAME }}
+            DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD_SECRET }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.DB_CONNECTION_NAME }}
 
       - name: Deploy Worker to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
@@ -294,7 +294,7 @@ jobs:
             CELERY_RESULT_BACKEND=redis://${{ secrets.REDIS_HOST }}:6379/0
             STORAGE_BUCKET=${{ secrets.GCS_BUCKET }}
             USE_GCS=true
-            DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.DB_CONNECTION_NAME }}
+            DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD_SECRET }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.DB_CONNECTION_NAME }}
 
       - name: Show deployment URLs
         run: |
