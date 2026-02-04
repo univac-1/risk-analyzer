@@ -264,9 +264,9 @@ jobs:
             --add-cloudsql-instances=${{ secrets.DB_CONNECTION_NAME }}
             --vpc-connector=risk-analyzer-connector
           env_vars: |
-            REDIS_URL=redis://${{ secrets.REDIS_HOST }}:6379/0
-            CELERY_BROKER_URL=redis://${{ secrets.REDIS_HOST }}:6379/0
-            CELERY_RESULT_BACKEND=redis://${{ secrets.REDIS_HOST }}:6379/0
+            REDIS_URL=redis://:${{ secrets.REDIS_AUTH }}@${{ secrets.REDIS_HOST }}:6379/0
+            CELERY_BROKER_URL=redis://:${{ secrets.REDIS_AUTH }}@${{ secrets.REDIS_HOST }}:6379/0
+            CELERY_RESULT_BACKEND=redis://:${{ secrets.REDIS_AUTH }}@${{ secrets.REDIS_HOST }}:6379/0
             STORAGE_BUCKET=${{ secrets.GCS_BUCKET }}
             USE_GCS=true
             DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD_SECRET }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.DB_CONNECTION_NAME }}
@@ -289,9 +289,9 @@ jobs:
             --add-cloudsql-instances=${{ secrets.DB_CONNECTION_NAME }}
             --vpc-connector=risk-analyzer-connector
           env_vars: |
-            REDIS_URL=redis://${{ secrets.REDIS_HOST }}:6379/0
-            CELERY_BROKER_URL=redis://${{ secrets.REDIS_HOST }}:6379/0
-            CELERY_RESULT_BACKEND=redis://${{ secrets.REDIS_HOST }}:6379/0
+            REDIS_URL=redis://:${{ secrets.REDIS_AUTH }}@${{ secrets.REDIS_HOST }}:6379/0
+            CELERY_BROKER_URL=redis://:${{ secrets.REDIS_AUTH }}@${{ secrets.REDIS_HOST }}:6379/0
+            CELERY_RESULT_BACKEND=redis://:${{ secrets.REDIS_AUTH }}@${{ secrets.REDIS_HOST }}:6379/0
             STORAGE_BUCKET=${{ secrets.GCS_BUCKET }}
             USE_GCS=true
             DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD_SECRET }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.DB_CONNECTION_NAME }}
