@@ -9,14 +9,29 @@ settings = get_settings()
 
 SQLALCHEMY_DATABASE_URL = settings.database_url
 
+# 同期エンジン用URL（psycopg2を使用）
+if SQLALCHEMY_DATABASE_URL.startswith("postgresql+asyncpg://"):
+    SYNC_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace(
+        "postgresql+asyncpg://", "postgresql://"
+    )
+elif SQLALCHEMY_DATABASE_URL.startswith("sqlite+aiosqlite://"):
+    SYNC_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace(
+        "sqlite+aiosqlite://", "sqlite://"
+    )
+else:
+    SYNC_DATABASE_URL = SQLALCHEMY_DATABASE_URL
+
+# 非同期エンジン用URL（asyncpgを使用）
 if SQLALCHEMY_DATABASE_URL.startswith("postgresql://"):
     ASYNC_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace(
         "postgresql://", "postgresql+asyncpg://"
     )
+elif SQLALCHEMY_DATABASE_URL.startswith("postgresql+asyncpg://"):
+    ASYNC_DATABASE_URL = SQLALCHEMY_DATABASE_URL
 else:
     ASYNC_DATABASE_URL = SQLALCHEMY_DATABASE_URL
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(SYNC_DATABASE_URL)
 async_engine = create_async_engine(ASYNC_DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
