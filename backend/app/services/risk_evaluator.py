@@ -2,14 +2,15 @@ import json
 import uuid
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
-import vertexai
-from vertexai.generative_models import GenerativeModel
+import vertexai # Still needed for vertexai.init
+from vertexai.generative_models import GenerativeModel # No longer directly used by RiskEvaluatorService but might be useful in future
 
-from app.config import get_settings
-
+from app.config import get_settings # Still needed for settings.google_cloud_project
 settings = get_settings()
+
+from app.services.gemini_video_analysis import UnifiedVideoAnalysisResult
 
 
 class RiskCategory(str, Enum):
@@ -50,59 +51,36 @@ class RiskItem:
 class RiskAssessment:
     overall_score: float
     risk_level: RiskLevel
-    risks: list[RiskItem]
-
-
-class RiskEvaluatorService:
-    def __init__(self):
-        if settings.google_cloud_project:
-            vertexai.init(project=settings.google_cloud_project, location="us-central1")
-        self.model = GenerativeModel("gemini-2.0-flash-001")
+    risks: List[RiskItem]
 
     def evaluate(
         self,
-        transcription: Optional[dict],
-        ocr: Optional[dict],
-        video_analysis: Optional[dict],
-        metadata: dict,
+        unified_analysis: UnifiedVideoAnalysisResult, # New signature
+        metadata: dict, # metadata is still passed by OrchestratorService but not directly used here
     ) -> RiskAssessment:
         """
-        解析結果を統合してリスク評価を行う
+        Geminiによる統合分析結果に基づいてリスク評価をパースし、整形する。
 
         Args:
-            transcription: 音声文字起こし結果
-            ocr: OCR結果
-            video_analysis: 映像解析結果
-            metadata: メタ情報（purpose, platform, target_audience）
+            unified_analysis: Geminiによる統合動画分析結果。
+            metadata: メタ情報（現在未使用だが引数としては維持）。
 
         Returns:
             リスク評価結果
         """
-        prompt = self._build_prompt(transcription, ocr, video_analysis, metadata)
-        response = self.model.generate_content(prompt)
-
+        # Geminiが直接リスクを返しているので、それをパース
+        overall_score = unified_analysis.gemini_overall_score if unified_analysis.gemini_overall_score is not None else 0.0
+        risk_level_str = unified_analysis.gemini_risk_level if unified_analysis.gemini_risk_level else RiskLevel.none.value
         try:
-            response_text = response.text.strip()
-            if response_text.startswith("```json"):
-                response_text = response_text[7:]
-            if response_text.startswith("```"):
-                response_text = response_text[3:]
-            if response_text.endswith("```"):
-                response_text = response_text[:-3]
-
-            data = json.loads(response_text)
-        except (json.JSONDecodeError, AttributeError):
-            return RiskAssessment(
-                overall_score=0.0,
-                risk_level=RiskLevel.none,
-                risks=[],
-            )
+            risk_level = RiskLevel(risk_level_str)
+        except ValueError:
+            risk_level = RiskLevel.none
 
         risks = []
-        for risk_data in data.get("risks", []):
+        for risk_data in unified_analysis.risks:
             try:
                 risk = RiskItem(
-                    id=str(uuid.uuid4()),
+                    id=risk_data.get("id", str(uuid.uuid4())), # Use ID from Gemini or generate
                     timestamp=float(risk_data.get("timestamp", 0)),
                     end_timestamp=float(risk_data.get("end_timestamp", risk_data.get("timestamp", 0))),
                     category=RiskCategory(risk_data.get("category", "misleading")),
@@ -110,111 +88,20 @@ class RiskEvaluatorService:
                     score=float(risk_data.get("score", 0)),
                     level=RiskLevel(risk_data.get("level", "low")),
                     rationale=risk_data.get("rationale", ""),
-                    source=RiskSource(risk_data.get("source", "audio")),
+                    source=RiskSource(risk_data.get("source", "video")), # Source is now always 'video' from Gemini
                     evidence=risk_data.get("evidence", ""),
                 )
                 risks.append(risk)
-            except (ValueError, KeyError):
+            except (ValueError, KeyError) as e:
+                # Log error or handle malformed risk item from Gemini
+                print(f"Error parsing risk item from Gemini: {e} - Data: {risk_data}")
                 continue
-
-        overall_score = float(data.get("overall_score", 0))
-        try:
-            risk_level = RiskLevel(data.get("risk_level", "none"))
-        except ValueError:
-            risk_level = RiskLevel.none
 
         return RiskAssessment(
             overall_score=overall_score,
             risk_level=risk_level,
             risks=risks,
         )
-
-    def _build_prompt(
-        self,
-        transcription: Optional[dict],
-        ocr: Optional[dict],
-        video_analysis: Optional[dict],
-        metadata: dict,
-    ) -> str:
-        """評価プロンプトを構築"""
-        prompt = f"""あなたはSNS投稿前の動画コンテンツに対する炎上リスクを評価する専門家です。
-
-## 投稿情報
-- 用途: {metadata.get('purpose', '不明')}
-- 投稿先媒体: {metadata.get('platform', '不明')}
-- 想定ターゲット: {metadata.get('target_audience', '不明')}
-
-## 解析データ
-
-### 音声文字起こし結果
-{json.dumps(transcription, ensure_ascii=False, indent=2) if transcription else '音声なし'}
-
-### 画面内テキスト（OCR）
-{json.dumps(ocr, ensure_ascii=False, indent=2) if ocr else 'テキストなし'}
-
-### 映像内容解析
-{json.dumps(video_analysis, ensure_ascii=False, indent=2) if video_analysis else '映像解析なし'}
-
-## 評価観点
-
-以下の4つの観点で炎上リスクを評価してください：
-
-### 1. 攻撃性 (aggressiveness)
-- 匿名性を利用した攻撃的表現
-- 拡散されやすい過激な表現
-- 感情的反応を煽る表現
-- 集団心理を刺激する表現
-- 個人攻撃につながる表現
-
-### 2. 差別性 (discrimination)
-- 人種・民族に関する偏見
-- 性別・ジェンダーに関する偏見
-- 性的指向に関する偏見
-- 年齢・世代に関する偏見
-- 身体的特徴に関する偏見
-- 社会的立場に関する偏見
-
-### 3. 誤解を招く表現 (misleading)
-- 断定的すぎる表現
-- 曖昧で誤解を招く表現
-- 感情的・煽情的な表現
-- 誇張表現
-- ステレオタイプに基づく表現
-- 文脈なしで切り取られやすい表現
-
-### 4. 迷惑行為・不衛生行為 (public_nuisance)
-- 店舗、施設、公共の場所での不適切な行為や器物損壊
-- 食品、商品、備品への異物混入や汚損行為
-- 業務妨害、他者の迷惑となる行為
-- 模倣犯を誘発する可能性のある行為
-- 企業やブランドの信用を著しく損なう行為
-
-特定の行為（例：商品をなめる、唾液を付着させる、備品を汚損する、落書きする）は、その行為が飲食店や公共の場で行われた場合、たとえ一見軽微に見えても、社会的な炎上リスクが非常に高く、企業ブランドに甚大な被害を与える可能性があるため、**総合スコアおよびリスクレベルを高く評価してください。**
-
-## 出力形式
-
-以下のJSON形式で回答してください：
-
-{{
-  "overall_score": 0-100の数値（炎上リスクの総合スコア）,
-  "risk_level": "none" | "low" | "medium" | "high",
-  "risks": [
-    {{
-      "timestamp": 開始タイムコード（秒）,
-      "end_timestamp": 終了タイムコード（秒）,
-      "category": "aggressiveness" | "discrimination" | "misleading" | "public_nuisance",
-      "subcategory": "具体的なリスク種別",
-      "score": 0-100の数値,
-      "level": "low" | "medium" | "high",
-      "rationale": "リスクと判断した具体的な根拠",
-      "source": "audio" | "ocr" | "video",
-      "evidence": "問題となる具体的な発言・テキスト・映像の内容"
-    }}
-  ]
-}}
-
-リスクが検出されない場合は、risksを空配列、overall_scoreを0、risk_levelを"none"としてください。
-JSONのみを出力し、説明は不要です。"""
 
         return prompt
 
