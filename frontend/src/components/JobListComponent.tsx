@@ -13,12 +13,15 @@ const STATUS_LABELS: Record<JobStatus, string> = {
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString)
+  // ユーザーのブラウザのタイムゾーンで表示（日本のユーザーはJSTで表示される）
+  // 明示的にJSTで表示したい場合は、timeZone: 'Asia/Tokyo' を追加
   return date.toLocaleString('ja-JP', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    // timeZone: 'Asia/Tokyo', // JST強制の場合はコメント解除
   })
 }
 

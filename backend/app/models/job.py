@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, String, DateTime, Enum, Integer, Float, ForeignKey, JSON
@@ -51,7 +51,7 @@ class Video(Base):
     original_name = Column(String, nullable=False)
     file_size = Column(Integer, nullable=False)
     duration = Column(Float, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     job = relationship("AnalysisJob", back_populates="video", uselist=False)
 
@@ -71,7 +71,7 @@ class AnalysisJob(Base):
     ocr_result = Column(JSON, nullable=True)
     video_analysis_result = Column(JSON, nullable=True)
     error_message = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
 
     video = relationship("Video", back_populates="job")

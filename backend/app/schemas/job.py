@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 
 class Platform(str, Enum):
@@ -62,6 +62,16 @@ class AnalysisJobResponse(BaseModel):
     completed_at: Optional[datetime] = None
     error_message: Optional[str] = None
 
+    @field_serializer('created_at', 'completed_at')
+    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
+        """datetimeをISO 8601形式（UTC）でシリアライズ"""
+        if dt is None:
+            return None
+        # naive datetimeの場合、UTCとして扱う
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
+
     class Config:
         from_attributes = True
 
@@ -72,6 +82,16 @@ class AnalysisJobSummary(BaseModel):
     video_name: str
     created_at: datetime
     completed_at: Optional[datetime] = None
+
+    @field_serializer('created_at', 'completed_at')
+    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
+        """datetimeをISO 8601形式（UTC）でシリアライズ"""
+        if dt is None:
+            return None
+        # naive datetimeの場合、UTCとして扱う
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
 
     class Config:
         from_attributes = True
