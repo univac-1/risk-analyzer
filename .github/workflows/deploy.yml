@@ -272,6 +272,7 @@ jobs:
             USE_GCS=true
             DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD_SECRET }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.DB_CONNECTION_NAME }}
             GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }}
+            GCS_SERVICE_ACCOUNT_EMAIL=risk-analyzer-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
 
       - name: Deploy Worker to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
@@ -299,6 +300,7 @@ jobs:
             USE_GCS=true
             DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD_SECRET }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.DB_CONNECTION_NAME }}
             GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }}
+            GCS_SERVICE_ACCOUNT_EMAIL=risk-analyzer-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
 
       - name: Show deployment URLs
         run: |
