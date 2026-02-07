@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
-import { ProgressStatus, PhaseProgress, JobStatus } from '../types'
+import { ProgressStatus, PhaseProgress } from '../types'
 import './ProgressComponent.css'
 
 const PHASE_LABELS: Record<string, string> = {

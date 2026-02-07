@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { api } from '../services/api'
+import { api, API_BASE_URL } from '../services/api'
 import { AnalysisResult, RiskItem, RiskLevel, RiskCategory, RiskSource } from '../types'
 import './ResultsComponent.css'
 
@@ -100,6 +100,13 @@ export function ResultsComponent() {
       try {
         const data = await api.get<AnalysisResult>(`/api/jobs/${id}/results`)
         setResult(data)
+        if (data.video_url) {
+          // Convert relative URL to absolute URL if needed
+          const absoluteUrl = data.video_url.startsWith('http')
+            ? data.video_url
+            : `${API_BASE_URL}${data.video_url}`
+          setVideoUrl(absoluteUrl)
+        }
       } catch (err) {
         setError('結果の取得に失敗しました')
       }

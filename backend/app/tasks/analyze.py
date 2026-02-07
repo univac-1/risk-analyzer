@@ -56,10 +56,17 @@ def analyze_video(self, job_id: str, video_path: str, metadata: dict) -> dict:
             job.video_analysis_result = result.get("video_analysis")
             db.commit()
 
+            # 各解析結果の詳細をログ出力
+            transcription = result.get("transcription")
+            ocr = result.get("ocr")
+            video_analysis = result.get("video_analysis")
+
             logger.info(
-                f"解析タスク完了: job_id={job_id}, "
-                f"overall_score={result.get('overall_score')}, "
-                f"risk_count={len(result.get('risks', []))}"
+                f"解析タスク完了: job_id={job_id}\n"
+                f"  [音声解析] セグメント数={len(transcription.get('segments', [])) if transcription else 0}\n"
+                f"  [OCR解析] テキスト数={len(ocr.get('texts', [])) if ocr else 0}\n"
+                f"  [映像解析] フレーム数={len(video_analysis.get('frames', [])) if video_analysis else 0}\n"
+                f"  [総合結果] overall_score={result.get('overall_score')}, risk_count={len(result.get('risks', []))}"
             )
 
             return {

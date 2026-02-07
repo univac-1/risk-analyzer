@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     celery_result_backend: str = "redis://localhost:6379/0"
 
     # Storage
+    use_gcs: bool = False
     storage_endpoint: str = "http://localhost:9000"
     storage_access_key: str = "minioadmin"
     storage_secret_key: str = "minioadmin"
@@ -19,6 +20,7 @@ class Settings(BaseSettings):
 
     # Google Cloud
     google_cloud_project: str = ""
+    gcs_service_account_email: str = ""  # For IAM-based signed URL generation
 
     # Application
     max_file_size_mb: int = 100

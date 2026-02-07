@@ -50,6 +50,7 @@ coverage.xml
 # JSON files (except config files)
 *.json
 !package.json
+!package-lock.json
 !tsconfig.json
 !tsconfig.node.json
 !.devcontainer/devcontainer.json
@@ -60,3 +61,20 @@ coverage.xml
 # OS
 .DS_Store
 Thumbs.db
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc

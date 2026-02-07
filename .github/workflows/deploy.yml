@@ -1,0 +1,308 @@
+name: Build and Deploy to Cloud Run
+
+on:
+  push:
+    tags:
+      - 'v*'  # v1.0.0, v1.2.3 など
+  pull_request:
+    branches:
+      - master
+      - main
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: asia-northeast1
+  REPOSITORY: risk-analyzer
+  FRONTEND_SERVICE: risk-analyzer-frontend
+  BACKEND_SERVICE: risk-analyzer-backend
+  WORKER_SERVICE: risk-analyzer-worker
+
+jobs:
+  # ===========================================
+  # Test Job
+  # ===========================================
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/.venv
+          key: venv-${{ runner.os }}-${{ hashFiles('backend/poetry.lock') }}
+
+      - name: Install dependencies
+        working-directory: backend
+        run: poetry install --no-interaction
+
+      - name: Run tests
+        working-directory: backend
+        run: poetry run pytest --cov=app --cov-report=xml
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/0
+          CELERY_RESULT_BACKEND: redis://localhost:6379/0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint --if-present
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:8000
+
+  # ===========================================
+  # Build and Push Job
+  # ===========================================
+  build:
+    needs: test
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      frontend_image: ${{ steps.set-outputs.outputs.frontend_image }}
+      backend_image: ${{ steps.set-outputs.outputs.backend_image }}
+      worker_image: ${{ steps.set-outputs.outputs.worker_image }}
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Debug - Build job started
+        run: |
+          echo "=== BUILD JOB STARTED ==="
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "github.ref: ${{ github.ref }}"
+          echo "PROJECT_ID from env: ${{ env.PROJECT_ID }}"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Deploying version: ${VERSION}"
+
+      - name: Validate environment
+        run: |
+          echo "PROJECT_ID: ${{ env.PROJECT_ID }}"
+          echo "REGION: ${{ env.REGION }}"
+          echo "REPOSITORY: ${{ env.REPOSITORY }}"
+          if [ -z "${{ env.PROJECT_ID }}" ]; then
+            echo "ERROR: PROJECT_ID is empty! Please set GCP_PROJECT_ID secret."
+            exit 1
+          fi
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Frontend
+        id: build-frontend
+        run: |
+          set -e
+          VERSION=${{ steps.version.outputs.version }}
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}"
+          echo "Building image: ${IMAGE}:${VERSION}"
+          docker build \
+            --build-arg VITE_API_URL=https://${{ env.BACKEND_SERVICE }}-${{ secrets.GCP_PROJECT_NUMBER }}.${{ env.REGION }}.run.app \
+            -t ${IMAGE}:${VERSION} \
+            -t ${IMAGE}:latest \
+            -f frontend/Dockerfile.prod \
+            frontend
+          docker push ${IMAGE}:${VERSION}
+          docker push ${IMAGE}:latest
+          echo "image=${IMAGE}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "Frontend image output set to: ${IMAGE}:${VERSION}"
+
+      - name: Build and push Backend
+        id: build-backend
+        run: |
+          set -e
+          VERSION=${{ steps.version.outputs.version }}
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}"
+          echo "Building image: ${IMAGE}:${VERSION}"
+          docker build \
+            -t ${IMAGE}:${VERSION} \
+            -t ${IMAGE}:latest \
+            -f backend/Dockerfile \
+            backend
+          docker push ${IMAGE}:${VERSION}
+          docker push ${IMAGE}:latest
+          echo "image=${IMAGE}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "Backend image output set to: ${IMAGE}:${VERSION}"
+
+      - name: Build and push Worker
+        id: build-worker
+        run: |
+          set -e
+          VERSION=${{ steps.version.outputs.version }}
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.WORKER_SERVICE }}"
+          echo "Building image: ${IMAGE}:${VERSION}"
+          docker build \
+            -t ${IMAGE}:${VERSION} \
+            -t ${IMAGE}:latest \
+            -f backend/Dockerfile.worker \
+            backend
+          docker push ${IMAGE}:${VERSION}
+          docker push ${IMAGE}:latest
+          echo "image=${IMAGE}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "Worker image output set to: ${IMAGE}:${VERSION}"
+
+      - name: Set image outputs
+        id: set-outputs
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          echo "frontend_image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "backend_image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "worker_image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.WORKER_SERVICE }}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "=== Outputs set ==="
+          echo "frontend_image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${VERSION}"
+          echo "backend_image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${VERSION}"
+          echo "worker_image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.WORKER_SERVICE }}:${VERSION}"
+
+  # ===========================================
+  # Deploy Job
+  # ===========================================
+  deploy:
+    needs: build
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set image variables
+        id: images
+        run: |
+          VERSION=${{ needs.build.outputs.version }}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "frontend=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "backend=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "worker=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.WORKER_SERVICE }}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "=== Images to deploy ==="
+          echo "Frontend: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${VERSION}"
+          echo "Backend: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${VERSION}"
+          echo "Worker: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.WORKER_SERVICE }}:${VERSION}"
+
+      - name: Deploy Frontend to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.FRONTEND_SERVICE }}
+          region: ${{ env.REGION }}
+          image: ${{ steps.images.outputs.frontend }}
+          flags: |
+            --port=8080
+            --allow-unauthenticated
+            --memory=256Mi
+            --cpu=1
+            --min-instances=0
+            --max-instances=3
+
+      - name: Deploy Backend to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.BACKEND_SERVICE }}
+          region: ${{ env.REGION }}
+          image: ${{ steps.images.outputs.backend }}
+          flags: |
+            --port=8000
+            --allow-unauthenticated
+            --memory=1Gi
+            --cpu=2
+            --min-instances=0
+            --max-instances=5
+            --add-cloudsql-instances=${{ secrets.DB_CONNECTION_NAME }}
+            --vpc-connector=risk-analyzer-connector
+            --service-account=risk-analyzer-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+          env_vars: |
+            REDIS_URL=redis://:${{ secrets.REDIS_AUTH }}@${{ secrets.REDIS_HOST }}:6379/0
+            CELERY_BROKER_URL=redis://:${{ secrets.REDIS_AUTH }}@${{ secrets.REDIS_HOST }}:6379/0
+            CELERY_RESULT_BACKEND=redis://:${{ secrets.REDIS_AUTH }}@${{ secrets.REDIS_HOST }}:6379/0
+            STORAGE_BUCKET=${{ secrets.GCS_BUCKET }}
+            USE_GCS=true
+            DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD_SECRET }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.DB_CONNECTION_NAME }}
+            GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }}
+            GCS_SERVICE_ACCOUNT_EMAIL=risk-analyzer-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+
+      - name: Deploy Worker to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.WORKER_SERVICE }}
+          region: ${{ env.REGION }}
+          image: ${{ steps.images.outputs.worker }}
+          flags: |
+            --port=8080
+            --no-allow-unauthenticated
+            --memory=2Gi
+            --cpu=2
+            --min-instances=1
+            --max-instances=5
+            --timeout=3600
+            --no-cpu-throttling
+            --add-cloudsql-instances=${{ secrets.DB_CONNECTION_NAME }}
+            --vpc-connector=risk-analyzer-connector
+            --service-account=risk-analyzer-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+          env_vars: |
+            REDIS_URL=redis://:${{ secrets.REDIS_AUTH }}@${{ secrets.REDIS_HOST }}:6379/0
+            CELERY_BROKER_URL=redis://:${{ secrets.REDIS_AUTH }}@${{ secrets.REDIS_HOST }}:6379/0
+            CELERY_RESULT_BACKEND=redis://:${{ secrets.REDIS_AUTH }}@${{ secrets.REDIS_HOST }}:6379/0
+            STORAGE_BUCKET=${{ secrets.GCS_BUCKET }}
+            USE_GCS=true
+            DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD_SECRET }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.DB_CONNECTION_NAME }}
+            GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }}
+            GCS_SERVICE_ACCOUNT_EMAIL=risk-analyzer-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+
+      - name: Show deployment URLs
+        run: |
+          echo "Frontend URL: https://${{ env.FRONTEND_SERVICE }}-${{ secrets.GCP_PROJECT_NUMBER }}.${{ env.REGION }}.run.app"
+          echo "Backend URL: https://${{ env.BACKEND_SERVICE }}-${{ secrets.GCP_PROJECT_NUMBER }}.${{ env.REGION }}.run.app"

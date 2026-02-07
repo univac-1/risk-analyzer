@@ -115,3 +115,4 @@ class RiskAssessmentResponse(BaseModel):
 class AnalysisResultResponse(BaseModel):
     job: AnalysisJobResponse
     assessment: RiskAssessmentResponse
+    video_url: Optional[str] = None
