@@ -4,10 +4,6 @@ on:
   push:
     tags:
       - 'v*'  # v1.0.0, v1.2.3 など
-  pull_request:
-    branches:
-      - master
-      - main
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
