@@ -221,8 +221,14 @@ class GCSStorageService(BaseStorageService):
 
     def get_file_stream(self, file_path: str):
         """Get file as streaming response"""
+        from io import BytesIO
+
         blob = self.bucket.blob(file_path)
-        return blob.open("rb")
+        # Download to BytesIO buffer
+        buffer = BytesIO()
+        blob.download_to_file(buffer)
+        buffer.seek(0)
+        return buffer
 
 
 def StorageService() -> BaseStorageService:
