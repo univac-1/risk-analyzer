@@ -4,7 +4,7 @@ import logging
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from sse_starlette.sse import EventSourceResponse
 
 logger = logging.getLogger(__name__)
@@ -226,22 +226,21 @@ async def get_job_results(job_id: str):
             risks=risk_item_responses,
         )
 
+        # Use backend streaming endpoint instead of signed URL
         video_url = None
-        try:
-            logger.info(f"Generating video URL for job {job_id}, file_path: {job.video.file_path}")
-            storage = StorageService()
-            if job.video.file_path:
-                file_exists = storage.file_exists(job.video.file_path)
-                logger.info(f"File exists check for {job.video.file_path}: {file_exists}")
-                if file_exists:
-                    video_url = storage.generate_presigned_url(job.video.file_path, expiration=3600)
-                    logger.info(f"Generated video URL for {job_id}: {video_url[:100]}...")
+        if job.video.file_path:
+            try:
+                storage = StorageService()
+                if storage.file_exists(job.video.file_path):
+                    # Return relative URL to backend video streaming endpoint
+                    video_url = f"/api/jobs/{job_id}/video"
+                    logger.info(f"Video URL set for job {job_id}: {video_url}")
                 else:
                     logger.warning(f"Video file not found in storage: {job.video.file_path}")
-            else:
-                logger.warning(f"No file_path for job {job_id}")
-        except Exception as e:
-            logger.error(f"Error generating video URL for job {job_id}: {str(e)}", exc_info=True)
+            except Exception as e:
+                logger.error(f"Error checking video file for job {job_id}: {str(e)}", exc_info=True)
+        else:
+            logger.warning(f"No file_path for job {job_id}")
 
         return AnalysisResultResponse(job=job_response, assessment=assessment, video_url=video_url)
 
@@ -292,3 +291,66 @@ async def get_job_events(job_id: str):
             await asyncio.sleep(1)
 
     return EventSourceResponse(event_generator())
+
+
+@router.get("/{job_id}/video")
+async def get_job_video(job_id: str):
+    """
+    動画ファイルを配信
+
+    - ジョブに関連付けられた動画をストレージから取得して配信
+    - Range requestsに対応してシーク可能
+    """
+    db = SessionLocal()
+    try:
+        job = (
+            db.query(AnalysisJob)
+            .join(Video)
+            .filter(AnalysisJob.id == job_id)
+            .first()
+        )
+
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="ジョブが見つかりません",
+            )
+
+        if not job.video.file_path:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="動画ファイルが見つかりません",
+            )
+
+        try:
+            storage = StorageService()
+
+            # Check if file exists
+            if not storage.file_exists(job.video.file_path):
+                logger.error(f"Video file not found in storage: {job.video.file_path}")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="動画ファイルがストレージに存在しません",
+                )
+
+            # Get file content
+            video_content = storage.get_file_content(job.video.file_path)
+
+            return Response(
+                content=video_content,
+                media_type="video/mp4",
+                headers={
+                    "Accept-Ranges": "bytes",
+                    "Content-Disposition": f'inline; filename="{job.video.original_name}"',
+                },
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error serving video for job {job_id}: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="動画の取得中にエラーが発生しました",
+            )
+    finally:
+        db.close()
