@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     # Google Cloud
     google_cloud_project: str = ""
+    gcs_service_account_email: str = ""  # For IAM-based signed URL generation
 
     # Application
     max_file_size_mb: int = 100
