@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, field_serializer, ConfigDict
 
 
 class Platform(str, Enum):
@@ -72,8 +72,7 @@ class AnalysisJobResponse(BaseModel):
             dt = dt.replace(tzinfo=timezone.utc)
         return dt.isoformat()
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AnalysisJobSummary(BaseModel):
@@ -93,8 +92,7 @@ class AnalysisJobSummary(BaseModel):
             dt = dt.replace(tzinfo=timezone.utc)
         return dt.isoformat()
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PhaseProgress(BaseModel):
@@ -122,8 +120,7 @@ class RiskItemResponse(BaseModel):
     source: RiskSource
     evidence: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RiskAssessmentResponse(BaseModel):

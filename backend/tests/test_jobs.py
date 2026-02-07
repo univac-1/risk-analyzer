@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
@@ -30,8 +30,8 @@ def sample_job():
     job.purpose = "テスト用途"
     job.platform = Platform.twitter
     job.target_audience = "テスト対象"
-    job.created_at = datetime.utcnow()
-    job.completed_at = datetime.utcnow()
+    job.created_at = datetime.now(timezone.utc)
+    job.completed_at = datetime.now(timezone.utc)
     job.error_message = None
     job.overall_score = 25.0
     job.risk_level = None

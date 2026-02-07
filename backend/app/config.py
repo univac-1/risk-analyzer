@@ -1,3 +1,4 @@
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -34,9 +35,11 @@ class Settings(BaseSettings):
     def allowed_extensions_list(self) -> list[str]:
         return [ext.strip().lower() for ext in self.allowed_extensions.split(",")]
 
-    class Config:
-        env_file = ".env.local"
-        env_file_encoding = "utf-8"
+    model_config = ConfigDict(
+        env_file=".env.local",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 @lru_cache
