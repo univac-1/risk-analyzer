@@ -293,4 +293,4 @@ class VideoAnalyzerService:
                 }
                 for frame in result.frames
             ]
-        }1
+        }
