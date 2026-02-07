@@ -38,12 +38,29 @@ class OCRAnalyzerService:
         self.storage_service = StorageService()
         self.video_client = videointelligence.VideoIntelligenceServiceClient()
 
-    def analyze(self, video_path: str) -> OCRResult:
+    @staticmethod
+    def _is_japanese_text(text: str, min_ratio: float) -> bool:
+        """テキストに指定された比率以上の日本語文字が含まれているかチェック"""
+        japanese_chars = 0
+        total_chars = 0
+        for char in text:
+            total_chars += 1
+            # ひらがな、カタカナ、漢字のUnicode範囲をチェック
+            if (
+                "\u3040" <= char <= "\u30ff"  # Hiragana and Katakana
+                or "\u4e00" <= char <= "\u9faf"  # Kanji (common range)
+            ):
+                japanese_chars += 1
+        return (japanese_chars / total_chars) >= min_ratio if total_chars > 0 else False
+
+    def analyze(self, video_path: str, confidence_threshold: float = 0.7, min_japanese_char_ratio: float = 0.5) -> OCRResult:
         """
         動画からテキストを抽出
 
         Args:
             video_path: ストレージ内の動画ファイルパス
+            confidence_threshold: 検出されたテキストの信頼度の閾値
+            min_japanese_char_ratio: テキストが日本語であると見なされる最小比率
 
         Returns:
             OCR結果
@@ -90,6 +107,14 @@ class OCRAnalyzerService:
                     start_time = segment.segment.start_time_offset.total_seconds()
                     end_time = segment.segment.end_time_offset.total_seconds()
                     confidence = segment.confidence
+
+                    # 信頼度によるフィルタリング
+                    if confidence < confidence_threshold:
+                        continue
+
+                    # 日本語比率によるフィルタリング
+                    if not self._is_japanese_text(text, min_japanese_char_ratio):
+                        continue
 
                     if segment.frames:
                         frame = segment.frames[0]
