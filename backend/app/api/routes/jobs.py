@@ -25,6 +25,7 @@ from app.schemas.job import (
     RiskSource,
 )
 from app.services.progress import ProgressService
+from app.services.storage import StorageService
 
 router = APIRouter()
 
@@ -222,7 +223,15 @@ async def get_job_results(job_id: str):
             risks=risk_item_responses,
         )
 
-        return AnalysisResultResponse(job=job_response, assessment=assessment)
+        video_url = None
+        try:
+            storage = StorageService()
+            if job.video.file_path and storage.file_exists(job.video.file_path):
+                video_url = storage.generate_presigned_url(job.video.file_path, expiration=3600)
+        except Exception:
+            pass
+
+        return AnalysisResultResponse(job=job_response, assessment=assessment, video_url=video_url)
 
     finally:
         db.close()

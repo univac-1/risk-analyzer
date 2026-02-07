@@ -69,4 +69,5 @@ export interface RiskAssessment {
 export interface AnalysisResult {
   job: AnalysisJob
   assessment: RiskAssessment
+  video_url: string | null
 }

@@ -91,7 +91,7 @@ export function ResultsComponent() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>('timestamp')
-  const [videoUrl] = useState<string | null>(null)
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -100,6 +100,9 @@ export function ResultsComponent() {
       try {
         const data = await api.get<AnalysisResult>(`/api/jobs/${id}/results`)
         setResult(data)
+        if (data.video_url) {
+          setVideoUrl(data.video_url)
+        }
       } catch (err) {
         setError('結果の取得に失敗しました')
       }
