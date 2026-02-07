@@ -56,7 +56,7 @@ class RiskEvaluatorService:
     def __init__(self):
         if settings.google_cloud_project:
             vertexai.init(project=settings.google_cloud_project, location="us-central1")
-        self.model = GenerativeModel("gemini-2.5-pro")
+        self.model = GenerativeModel("gemini-2.0-flash-001")
 
     def evaluate(
         self,
@@ -137,7 +137,6 @@ class RiskEvaluatorService:
     ) -> str:
         """評価プロンプトを構築"""
         prompt = f"""あなたはSNS投稿前の動画コンテンツに対する炎上リスクを評価する専門家です。
-        提供される解析データを基に、極めて客観的かつ厳密にリスクを評価し、詳細な根拠と共にJSON形式で出力してください。
 
 ## 投稿情報
 - 用途: {metadata.get('purpose', '不明')}
@@ -153,40 +152,34 @@ class RiskEvaluatorService:
 {json.dumps(ocr, ensure_ascii=False, indent=2) if ocr else 'テキストなし'}
 
 ### 映像内容解析
-動画から抽出された詳細なタイムライン情報です。各タイムラインエントリには、人物の行動、検出された物体、シーンの文脈、および潜在的なリスク兆候が含まれます。
 {json.dumps(video_analysis, ensure_ascii=False, indent=2) if video_analysis else '映像解析なし'}
 
-## 評価観点と判断基準
+## 評価観点
 
-以下の3つの観点で炎上リスクを評価してください。各リスクのスコアは0-100で、根拠を詳細に記述してください。
-特に、**映像内容解析のタイムラインにある 'potential_risk_indicators'、'persons' の 'action'、'detected_objects'、'scene_context' の情報を最優先して参照**し、その客観的なエビデンスに基づいてリスクを判断してください。
+以下の3つの観点で炎上リスクを評価してください：
 
 ### 1. 攻撃性 (aggressiveness)
-- **定義**: 他者への身体的・精神的危害を示唆、扇動、美化する表現。特定の個人や集団への直接的な攻撃、脅迫、挑発、暴力的な行動、武器の使用、または攻撃的なジェスチャー。
-- **判断基準**:
-    - 人物が攻撃的な行動（殴る、蹴る、物を投げる）をしているか。
-    - 武器や危険な物体（ナイフ、銃、爆発物など）が検出されているか。
-    - 表情が極度に怒りや憎悪を示しているか。
-    - シーンの文脈が暴力的、または対立を煽るものであるか。
-    - `potential_risk_indicators` に `"type": "aggressiveness"` が含まれ、その `evidence` が具体的か。
+- 匿名性を利用した攻撃的表現
+- 拡散されやすい過激な表現
+- 感情的反応を煽る表現
+- 集団心理を刺激する表現
+- 個人攻撃につながる表現
 
 ### 2. 差別性 (discrimination)
-- **定義**: 人種、民族、性別、性的指向、年齢、障害、国籍、宗教、社会的地位など、特定の属性を持つ個人や集団を不当に貶める、嘲笑する、または排除する表現。偏見やステレオタイプを助長する内容。
-- **判断基準**:
-    - 特定の集団に対する不適切な描写、ジェスチャー、シンボル、服装があるか。
-    - 侮辱的、軽蔑的な表現（音声、OCR、映像内のシンボル）があるか。
-    - 身体的特徴や属性に基づく嘲笑、排斥を促す行動があるか。
-    - シーンの文脈が特定の集団に対する偏見を助長するものであるか。
-    - `potential_risk_indicators` に `"type": "discrimination"` が含まれ、その `evidence` が具体的か。
+- 人種・民族に関する偏見
+- 性別・ジェンダーに関する偏見
+- 性的指向に関する偏見
+- 年齢・世代に関する偏見
+- 身体的特徴に関する偏見
+- 社会的立場に関する偏見
 
 ### 3. 誤解を招く表現 (misleading)
-- **定義**: 事実と異なる、または誤解を与える可能性のある情報、誇張された表現、文脈を無視した情報、視聴者を欺く意図がある、または欺く結果となる表現。
-- **判断基準**:
-    - 誤った情報を示すテキスト（OCR）、画像、または情報源が提示されているか。
-    - 不正確な主張を裏付けるような視覚的な欺瞞（例: 編集された映像、誤解を招くグラフ）。
-    - 誇大な表現やステレオタイプに基づく表現が映像や音声に含まれているか。
-    - 危険な行為を安全であるかのように描写し、誤った認識を与える可能性があるか。
-    - `potential_risk_indicators` に `"type": "misleading"` が含まれ、その `evidence` が具体的か。
+- 断定的すぎる表現
+- 曖昧で誤解を招く表現
+- 感情的・煽情的な表現
+- 誇張表現
+- ステレオタイプに基づく表現
+- 文脈なしで切り取られやすい表現
 
 ## 出力形式
 
@@ -197,22 +190,21 @@ class RiskEvaluatorService:
   "risk_level": "none" | "low" | "medium" | "high",
   "risks": [
     {{
-      "timestamp": 開始タイムコード（float, 秒）,
-      "end_timestamp": 終了タイムコード（float, 秒）,
+      "timestamp": 開始タイムコード（秒）,
+      "end_timestamp": 終了タイムコード（秒）,
       "category": "aggressiveness" | "discrimination" | "misleading",
       "subcategory": "具体的なリスク種別",
       "score": 0-100の数値,
       "level": "low" | "medium" | "high",
-      "rationale": "リスクと判断した具体的な根拠（映像内容解析のどの情報から判断したか明記すること）",
+      "rationale": "リスクと判断した具体的な根拠",
       "source": "audio" | "ocr" | "video",
-      "evidence": "問題となる具体的な発言・テキスト・映像の内容（video_analysisのdescription、potential_risk_indicators、persons、detected_objects、scene_contextから引用すること）"
+      "evidence": "問題となる具体的な発言・テキスト・映像の内容"
     }}
   ]
 }}
 
 リスクが検出されない場合は、risksを空配列、overall_scoreを0、risk_levelを"none"としてください。
-JSONのみを出力し、説明は不要です。
-"""
+JSONのみを出力し、説明は不要です。"""
 
         return prompt
 

@@ -1,8 +1,9 @@
-import json
-import tempfile
 import os
-import logging
-from typing import Any, Dict
+import base64
+import tempfile
+import subprocess
+from dataclasses import dataclass
+import json
 
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part
@@ -11,7 +12,57 @@ from app.config import get_settings
 from app.services.storage import StorageService
 
 settings = get_settings()
-logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Vertex:
+    x: float
+    y: float
+
+
+@dataclass
+class BoundingBox:
+    vertices: list[Vertex]
+
+
+@dataclass
+class PersonAttributes:
+    expression: str
+    gesture: str
+    attire: str
+
+
+@dataclass
+class PersonDetection:
+    bounding_box: BoundingBox
+    attributes: PersonAttributes
+
+
+@dataclass
+class ObjectDetection:
+    label: str
+    bounding_box: BoundingBox
+    confidence: float
+
+
+@dataclass
+class SceneClassification:
+    location: str
+    atmosphere: str
+    context: str
+
+
+@dataclass
+class FrameAnalysis:
+    timestamp: float
+    persons: list[PersonDetection]
+    objects: list[ObjectDetection]
+    scene: SceneClassification
+
+
+@dataclass
+class VideoAnalysisResult:
+    frames: list[FrameAnalysis]
 
 
 class VideoAnalyzerService:
@@ -19,120 +70,227 @@ class VideoAnalyzerService:
         self.storage_service = StorageService()
         if settings.google_cloud_project:
             vertexai.init(project=settings.google_cloud_project, location="us-central1")
-        # Use Flash model for video
-        self.model = GenerativeModel("gemini-2.5-pro")
+        self.model = GenerativeModel("gemini-2.0-flash-001")
 
-    def analyze(self, video_path: str) -> Dict[str, Any]:
+    def extract_frames(self, video_path: str, interval: float = 2.0) -> list[tuple[float, str]]:
         """
-        動画全体を解析 (Gemini 2.0 Native Video)
+        動画からフレームを抽出
+
+        Args:
+            video_path: ストレージ内の動画ファイルパス
+            interval: フレーム抽出間隔（秒）
+
+        Returns:
+            (タイムスタンプ, base64エンコード画像)のリスト
+        """
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as video_file:
+            video_local_path = video_file.name
+            self.storage_service.download_file(video_path, video_local_path)
+
+        frames = []
+        frame_dir = tempfile.mkdtemp()
+
+        try:
+            result = subprocess.run(
+                [
+                    "ffprobe",
+                    "-v", "error",
+                    "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    video_local_path,
+                ],
+                capture_output=True,
+                text=True,
+            )
+            duration = float(result.stdout.strip()) if result.stdout.strip() else 0
+
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-i", video_local_path,
+                    "-vf", f"fps=1/{interval}",
+                    "-q:v", "2",
+                    f"{frame_dir}/frame_%04d.jpg",
+                ],
+                capture_output=True,
+                timeout=300,
+            )
+
+            frame_files = sorted([f for f in os.listdir(frame_dir) if f.endswith(".jpg")])
+
+            for i, frame_file in enumerate(frame_files):
+                frame_path = os.path.join(frame_dir, frame_file)
+                timestamp = i * interval
+
+                with open(frame_path, "rb") as f:
+                    frame_data = base64.b64encode(f.read()).decode("utf-8")
+
+                frames.append((timestamp, frame_data))
+                os.unlink(frame_path)
+
+        finally:
+            if os.path.exists(video_local_path):
+                os.unlink(video_local_path)
+            if os.path.exists(frame_dir):
+                os.rmdir(frame_dir)
+
+        return frames
+
+    def analyze_frame(self, timestamp: float, frame_base64: str) -> FrameAnalysis:
+        """
+        単一フレームを解析
+
+        Args:
+            timestamp: タイムスタンプ
+            frame_base64: base64エンコードされた画像
+
+        Returns:
+            フレーム解析結果
+        """
+        prompt = """この画像を詳細に分析し、以下の情報をJSON形式で返してください：
+
+1. persons: 画像内の人物リスト。各人物について:
+   - expression: 表情（例: 笑顔, 真剣, 怒り, 悲しみ, 驚き, 無表情など）
+   - gesture: ジェスチャー・動作（例: 手を振る, うなずく, 指差し, 腕組みなど）
+   - attire: 服装の特徴（例: ビジネススーツ, カジュアル, 制服など）
+
+2. objects: 検出された重要な物体リスト。各物体について:
+   - label: 物体名
+   - confidence: 確信度（0-1）
+
+3. scene: シーン全体の分析
+   - location: 場所（例: オフィス, 屋外, 店舗など）
+   - atmosphere: 雰囲気（例: プロフェッショナル, カジュアル, 緊張感があるなど）
+   - context: 状況の説明（何が行われているか）
+
+レスポンスはJSONのみで、説明は不要です：
+{
+  "persons": [{"expression": "", "gesture": "", "attire": ""}],
+  "objects": [{"label": "", "confidence": 0.0}],
+  "scene": {"location": "", "atmosphere": "", "context": ""}
+}"""
+
+        image_part = Part.from_data(
+            data=base64.b64decode(frame_base64),
+            mime_type="image/jpeg",
+        )
+
+        response = self.model.generate_content([prompt, image_part])
+
+        try:
+            response_text = response.text.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+
+            data = json.loads(response_text)
+        except (json.JSONDecodeError, AttributeError):
+            data = {
+                "persons": [],
+                "objects": [],
+                "scene": {"location": "不明", "atmosphere": "不明", "context": "解析失敗"}
+            }
+
+        persons = []
+        for p in data.get("persons", []):
+            persons.append(PersonDetection(
+                bounding_box=BoundingBox(vertices=[
+                    Vertex(0, 0), Vertex(1, 0), Vertex(1, 1), Vertex(0, 1)
+                ]),
+                attributes=PersonAttributes(
+                    expression=p.get("expression", ""),
+                    gesture=p.get("gesture", ""),
+                    attire=p.get("attire", ""),
+                ),
+            ))
+
+        objects = []
+        for o in data.get("objects", []):
+            objects.append(ObjectDetection(
+                label=o.get("label", ""),
+                bounding_box=BoundingBox(vertices=[
+                    Vertex(0, 0), Vertex(1, 0), Vertex(1, 1), Vertex(0, 1)
+                ]),
+                confidence=o.get("confidence", 0.0),
+            ))
+
+        scene_data = data.get("scene", {})
+        scene = SceneClassification(
+            location=scene_data.get("location", ""),
+            atmosphere=scene_data.get("atmosphere", ""),
+            context=scene_data.get("context", ""),
+        )
+
+        return FrameAnalysis(
+            timestamp=timestamp,
+            persons=persons,
+            objects=objects,
+            scene=scene,
+        )
+
+    def analyze(self, video_path: str) -> VideoAnalysisResult:
+        """
+        動画全体を解析
 
         Args:
             video_path: ストレージ内の動画ファイルパス
 
         Returns:
-            映像解析結果 (Dict)
+            映像解析結果
         """
-        # Create temp file
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as video_file:
-            video_local_path = video_file.name
+        frames_data = self.extract_frames(video_path)
+        frame_analyses = []
 
-        try:
-            logger.info(f"Downloading video for analysis: {video_path}")
-            self.storage_service.download_file(video_path, video_local_path)
+        for timestamp, frame_base64 in frames_data:
+            analysis = self.analyze_frame(timestamp, frame_base64)
+            frame_analyses.append(analysis)
 
-            # Check file size roughly
-            file_size = os.path.getsize(video_local_path)
-            logger.info(f"Video size: {file_size / (1024*1024):.2f} MB")
+        return VideoAnalysisResult(frames=frame_analyses)
 
-            # Note: For larger files (>20MB), consider using GCS URI instead of inline data
-            with open(video_local_path, "rb") as f:
-                video_data = f.read()
-
-            video_part = Part.from_data(
-                data=video_data,
-                mime_type="video/mp4"
-            )
-
-            prompt = """
-            あなたは動画のコンテンツアナリストです。この動画を詳細に分析し、
-            将来的な炎上リスク評価の根拠となる可能性のあるすべての客観的な情報を抽出してください。
-            特に、以下の要素に注目し、時間軸に沿って詳細に記述してください。
-
-            - **人物**: 表情、ジェスチャー、行動（例: 暴力行為、挑発的な動き、不快な表現）
-            - **物体**: 不適切な物体、武器、シンボル、ブランドロゴなど
-            - **シーン**: 環境、背景、雰囲気、場所、文脈（例: 公共の場でのプライバシー侵害、危険な場所での撮影）
-            - **潜在的なリスク兆候**: 暴力、差別、誤解を招く可能性のある視覚的要素、不適切な内容
-
-            タイムスタンプは厳密にfloat型（秒）で表現し、JSON形式で出力してください。
-
-            {
-                "summary": "動画全体の客観的な要約",
-                "timeline": [
-                    {
-                        "timestamp_start": "開始時間 (float, 秒)",
-                        "timestamp_end": "終了時間 (float, 秒)",
-                        "description": "何が起きているかの客観的かつ詳細な描写。人物の行動、物体の存在、シーンの状況など。",
-                        "potential_risk_indicators": [
-                            {"type": "aggressiveness", "evidence": "具体的な攻撃的兆候（例：拳を振り上げている）"},
-                            {"type": "discrimination", "evidence": "具体的な差別的兆候（例：特定のジェスチャー）"},
-                            {"type": "misleading", "evidence": "具体的な誤解を招く兆候（例：誤情報を示すポスター）"},
-                            {"type": "other_risk", "evidence": "その他の懸念事項（例：危険なスタント）"}
-                        ],
-                        "persons": [
-                             {"description": "人物の描写", "expression": "表情", "action": "行動", "attire": "服装"}
-                        ],
-                        "detected_objects": [
-                            {"label": "検出された物体", "confidence": "信頼度 (float)"}
-                        ],
-                        "scene_context": {
-                            "location": "場所",
-                            "atmosphere": "雰囲気",
-                            "context_description": "シーンの客観的な説明"
+    def result_to_dict(self, result: VideoAnalysisResult) -> dict:
+        """結果を辞書形式に変換"""
+        return {
+            "frames": [
+                {
+                    "timestamp": frame.timestamp,
+                    "persons": [
+                        {
+                            "bounding_box": {
+                                "vertices": [
+                                    {"x": v.x, "y": v.y}
+                                    for v in p.bounding_box.vertices
+                                ]
+                            },
+                            "attributes": {
+                                "expression": p.attributes.expression,
+                                "gesture": p.attributes.gesture,
+                                "attire": p.attributes.attire,
+                            },
                         }
-                    }
-                ],
-                "overall_video_analysis": {
-                     "tone": "動画全体のトーンや雰囲気",
-                     "flags": ["潜在的な問題点1", "潜在的な問題点2"]
+                        for p in frame.persons
+                    ],
+                    "objects": [
+                        {
+                            "label": o.label,
+                            "bounding_box": {
+                                "vertices": [
+                                    {"x": v.x, "y": v.y}
+                                    for v in o.bounding_box.vertices
+                                ]
+                            },
+                            "confidence": o.confidence,
+                        }
+                        for o in frame.objects
+                    ],
+                    "scene": {
+                        "location": frame.scene.location,
+                        "atmosphere": frame.scene.atmosphere,
+                        "context": frame.scene.context,
+                    },
                 }
-            }
-            """
-
-            logger.info("Sending request to Gemini...")
-            response = self.model.generate_content(
-                [prompt, video_part],
-                generation_config={"response_mime_type": "application/json"}
-            )
-            
-            logger.info(f"Raw response from Gemini: {json.dumps(json.loads(response.text), indent=2, ensure_ascii=False)}")
-
-            try:
-                result = json.loads(response.text)
-                return result
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse JSON response: {e}")
-                logger.error(f"Raw response: {response.text}")
-                return {
-                    "summary": "解析エラー: JSONパース失敗",
-                    "timeline": [],
-                    "error": str(e)
-                }
-            except Exception as e:
-                logger.error(f"Error processing response: {e}")
-                return {
-                    "summary": "解析エラー: 処理失敗",
-                    "timeline": [],
-                    "error": str(e)
-                }
-
-        except Exception as e:
-            logger.error(f"Video analysis failed: {e}")
-            raise
-        finally:
-            if os.path.exists(video_local_path):
-                os.unlink(video_local_path)
-
-    def result_to_dict(self, result: Dict[str, Any]) -> Dict[str, Any]:
-        """結果を辞書形式に変換 (すでに辞書なのでそのまま返す)"""
-        return result
-
+                for frame in result.frames
+            ]
+        }

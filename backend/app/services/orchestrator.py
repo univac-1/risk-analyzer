@@ -1,17 +1,17 @@
 import concurrent.futures
-import logging 
-import traceback                                                                                                                                                                                                    │
 from typing import Optional
+import traceback
+import logging
 
-from app.services.progress import ProgressService, PhaseStatus, JobStatus
+from app.services.progress import ProgressService, PhaseStatus
+
+logger = logging.getLogger(__name__)
 from app.services.audio_analyzer import AudioAnalyzerService
 from app.services.ocr_analyzer import OCRAnalyzerService
 from app.services.video_analyzer import VideoAnalyzerService
 from app.services.risk_evaluator import RiskEvaluatorService
 from app.models.database import SessionLocal
 from app.models.job import AnalysisJob, RiskItem as DBRiskItem, RiskCategory, RiskLevel, RiskSource
-
-logger = logging.getLogger(__name__)
 
 
 class OrchestratorService:
@@ -120,10 +120,7 @@ class OrchestratorService:
             )
             risk_result = {"overall_score": 0, "risk_level": "none", "risks": []}
 
-        # Check current status before marking as complete
-        current_progress = self.progress_service.get_progress(job_id)
-        if current_progress and current_progress.get("status") != JobStatus.failed.value:
-            self.progress_service.set_job_completed(job_id)
+        self.progress_service.set_job_completed(job_id)
 
         # 解析結果サマリーログ
         logger.info(
