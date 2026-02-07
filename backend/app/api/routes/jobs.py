@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 from typing import AsyncGenerator
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse, Response
@@ -357,8 +358,11 @@ async def get_job_video(job_id: str):
                 if hasattr(stream, 'close'):
                     stream.close()
 
+        # RFC 5987 compliant Content-Disposition header for non-ASCII filenames
+        ascii_fallback = "video.mp4"  # Simple ASCII fallback for old browsers
+        encoded_filename = quote(original_name, safe='')
         headers = {
-            "Content-Disposition": f'inline; filename="{original_name}"',
+            "Content-Disposition": f'inline; filename="{ascii_fallback}"; filename*=UTF-8\'\'{encoded_filename}',
         }
         if file_size:
             headers["Content-Length"] = str(file_size)
