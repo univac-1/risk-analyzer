@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from celery import shared_task
 
@@ -48,7 +48,7 @@ def analyze_video(self, job_id: str, video_path: str, metadata: dict) -> dict:
             result = orchestrator.run_analysis(job_id, video_path, metadata)
 
             job.status = JobStatus.completed
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
             job.overall_score = result.get("overall_score")
             job.risk_level = result.get("risk_level")
             job.transcription_result = result.get("transcription")
@@ -84,7 +84,7 @@ def analyze_video(self, job_id: str, video_path: str, metadata: dict) -> dict:
             )
             job.status = JobStatus.failed
             job.error_message = str(e)
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
             db.commit()
 
             if self.request.retries < self.max_retries:
