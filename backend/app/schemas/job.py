@@ -32,6 +32,7 @@ class RiskCategory(str, Enum):
     aggressiveness = "aggressiveness"
     discrimination = "discrimination"
     misleading = "misleading"
+    public_nuisance = "public_nuisance"
 
 
 class RiskLevel(str, Enum):

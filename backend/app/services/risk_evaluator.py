@@ -16,6 +16,7 @@ class RiskCategory(str, Enum):
     aggressiveness = "aggressiveness"
     discrimination = "discrimination"
     misleading = "misleading"
+    public_nuisance = "public_nuisance"
 
 
 class RiskLevel(str, Enum):
@@ -156,7 +157,7 @@ class RiskEvaluatorService:
 
 ## 評価観点
 
-以下の3つの観点で炎上リスクを評価してください：
+以下の4つの観点で炎上リスクを評価してください：
 
 ### 1. 攻撃性 (aggressiveness)
 - 匿名性を利用した攻撃的表現
@@ -181,6 +182,15 @@ class RiskEvaluatorService:
 - ステレオタイプに基づく表現
 - 文脈なしで切り取られやすい表現
 
+### 4. 迷惑行為・不衛生行為 (public_nuisance)
+- 店舗、施設、公共の場所での不適切な行為や器物損壊
+- 食品、商品、備品への異物混入や汚損行為
+- 業務妨害、他者の迷惑となる行為
+- 模倣犯を誘発する可能性のある行為
+- 企業やブランドの信用を著しく損なう行為
+
+特定の行為（例：商品をなめる、唾液を付着させる、備品を汚損する、落書きする）は、その行為が飲食店や公共の場で行われた場合、たとえ一見軽微に見えても、社会的な炎上リスクが非常に高く、企業ブランドに甚大な被害を与える可能性があるため、**総合スコアおよびリスクレベルを高く評価してください。**
+
 ## 出力形式
 
 以下のJSON形式で回答してください：
@@ -192,7 +202,7 @@ class RiskEvaluatorService:
     {{
       "timestamp": 開始タイムコード（秒）,
       "end_timestamp": 終了タイムコード（秒）,
-      "category": "aggressiveness" | "discrimination" | "misleading",
+      "category": "aggressiveness" | "discrimination" | "misleading" | "public_nuisance",
       "subcategory": "具体的なリスク種別",
       "score": 0-100の数値,
       "level": "low" | "medium" | "high",
