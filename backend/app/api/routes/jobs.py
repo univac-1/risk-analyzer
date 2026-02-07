@@ -299,7 +299,7 @@ async def get_job_video(job_id: str):
     動画ファイルを配信
 
     - ジョブに関連付けられた動画をストレージから取得して配信
-    - Range requestsに対応してシーク可能
+    - ストリーミング配信でメモリ効率的
     """
     db = SessionLocal()
     try:
@@ -322,35 +322,57 @@ async def get_job_video(job_id: str):
                 detail="動画ファイルが見つかりません",
             )
 
-        try:
-            storage = StorageService()
+        file_path = job.video.file_path
+        original_name = job.video.original_name
 
-            # Check if file exists
-            if not storage.file_exists(job.video.file_path):
-                logger.error(f"Video file not found in storage: {job.video.file_path}")
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="動画ファイルがストレージに存在しません",
-                )
-
-            # Get file content
-            video_content = storage.get_file_content(job.video.file_path)
-
-            return Response(
-                content=video_content,
-                media_type="video/mp4",
-                headers={
-                    "Accept-Ranges": "bytes",
-                    "Content-Disposition": f'inline; filename="{job.video.original_name}"',
-                },
-            )
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"Error serving video for job {job_id}: {str(e)}", exc_info=True)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="動画の取得中にエラーが発生しました",
-            )
     finally:
         db.close()
+
+    # Stream video outside of db session to avoid locks
+    try:
+        storage = StorageService()
+
+        # Check if file exists
+        if not storage.file_exists(file_path):
+            logger.error(f"Video file not found in storage: {file_path}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="動画ファイルがストレージに存在しません",
+            )
+
+        # Get file size for Content-Length header
+        file_size = storage.get_file_size(file_path)
+
+        # Stream file content in chunks
+        def iter_file():
+            stream = storage.get_file_stream(file_path)
+            try:
+                chunk_size = 1024 * 1024  # 1MB chunks
+                while True:
+                    chunk = stream.read(chunk_size)
+                    if not chunk:
+                        break
+                    yield chunk
+            finally:
+                if hasattr(stream, 'close'):
+                    stream.close()
+
+        headers = {
+            "Content-Disposition": f'inline; filename="{original_name}"',
+        }
+        if file_size:
+            headers["Content-Length"] = str(file_size)
+
+        return StreamingResponse(
+            iter_file(),
+            media_type="video/mp4",
+            headers=headers,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving video for job {job_id}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="動画の取得中にエラーが発生しました",
+        )

@@ -51,6 +51,11 @@ class BaseStorageService(ABC):
         """ファイルサイズを取得"""
         pass
 
+    @abstractmethod
+    def get_file_stream(self, file_path: str):
+        """ファイルをストリーム形式で取得"""
+        pass
+
     def _generate_unique_path(self, original_filename: str) -> str:
         """ユニークなファイルパスを生成"""
         file_extension = os.path.splitext(original_filename)[1]
@@ -127,6 +132,11 @@ class S3StorageService(BaseStorageService):
             return response["ContentLength"]
         except self.ClientError:
             return None
+
+    def get_file_stream(self, file_path: str):
+        """Get file as streaming response"""
+        response = self.s3_client.get_object(Bucket=self.bucket, Key=file_path)
+        return response["Body"]
 
 
 class GCSStorageService(BaseStorageService):
@@ -208,6 +218,11 @@ class GCSStorageService(BaseStorageService):
         blob = self.bucket.blob(file_path)
         blob.reload()
         return blob.size
+
+    def get_file_stream(self, file_path: str):
+        """Get file as streaming response"""
+        blob = self.bucket.blob(file_path)
+        return blob.open("rb")
 
 
 def StorageService() -> BaseStorageService:
