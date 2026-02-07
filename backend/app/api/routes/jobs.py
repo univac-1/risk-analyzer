@@ -1,10 +1,13 @@
 import asyncio
 import json
+import logging
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
+
+logger = logging.getLogger(__name__)
 
 from app.models.database import SessionLocal
 from app.models.job import AnalysisJob, Video, RiskItem as DBRiskItem
@@ -225,11 +228,20 @@ async def get_job_results(job_id: str):
 
         video_url = None
         try:
+            logger.info(f"Generating video URL for job {job_id}, file_path: {job.video.file_path}")
             storage = StorageService()
-            if job.video.file_path and storage.file_exists(job.video.file_path):
-                video_url = storage.generate_presigned_url(job.video.file_path, expiration=3600)
-        except Exception:
-            pass
+            if job.video.file_path:
+                file_exists = storage.file_exists(job.video.file_path)
+                logger.info(f"File exists check for {job.video.file_path}: {file_exists}")
+                if file_exists:
+                    video_url = storage.generate_presigned_url(job.video.file_path, expiration=3600)
+                    logger.info(f"Generated video URL for {job_id}: {video_url[:100]}...")
+                else:
+                    logger.warning(f"Video file not found in storage: {job.video.file_path}")
+            else:
+                logger.warning(f"No file_path for job {job_id}")
+        except Exception as e:
+            logger.error(f"Error generating video URL for job {job_id}: {str(e)}", exc_info=True)
 
         return AnalysisResultResponse(job=job_response, assessment=assessment, video_url=video_url)
 
