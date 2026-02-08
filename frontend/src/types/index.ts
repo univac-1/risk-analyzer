@@ -71,3 +71,75 @@ export interface AnalysisResult {
   assessment: RiskAssessment
   video_url: string | null
 }
+
+export type EditActionType = 'cut' | 'mute' | 'mosaic' | 'telop' | 'skip'
+
+export type EditSessionStatus = 'draft' | 'exporting' | 'completed'
+
+export type ExportJobStatus = 'pending' | 'processing' | 'completed' | 'failed'
+
+export interface MosaicOptions {
+  x: number
+  y: number
+  width: number
+  height: number
+  blur_strength: number
+}
+
+export interface TelopOptions {
+  text: string
+  x: number
+  y: number
+  font_size: number
+  font_color: string
+  background_color?: string | null
+}
+
+export interface EditActionInput {
+  id?: string
+  risk_item_id?: string | null
+  type: EditActionType
+  start_time: number
+  end_time: number
+  options?: MosaicOptions | TelopOptions | null
+}
+
+export interface EditActionResponse extends EditActionInput {
+  id: string
+  created_at: string
+}
+
+export interface EditSessionUpdate {
+  actions: EditActionInput[]
+}
+
+export interface EditSessionResponse {
+  id: string
+  job_id: string
+  status: EditSessionStatus
+  actions: EditActionResponse[]
+  created_at: string
+  updated_at: string
+}
+
+export interface ExportResponse {
+  export_id: string
+  status: ExportJobStatus
+}
+
+export interface ExportStatusResponse {
+  export_id: string
+  status: ExportJobStatus
+  progress: number
+  error_message?: string | null
+}
+
+export interface VideoUrlResponse {
+  url: string
+  expires_at: string
+}
+
+export interface DownloadUrlResponse {
+  url: string
+  expires_at: string
+}

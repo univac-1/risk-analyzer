@@ -31,6 +31,12 @@ export const api = {
       body: data ? JSON.stringify(data) : undefined,
     }),
 
+  put: <T>(endpoint: string, data?: unknown) =>
+    request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    }),
+
   upload: async <T>(endpoint: string, formData: FormData): Promise<T> => {
     const url = `${API_BASE_URL}${endpoint}`
     const response = await fetch(url, {
