@@ -102,6 +102,31 @@ class S3StorageService(BaseStorageService):
         )
         return file_path
 
+    def upload_file_to_path(
+        self,
+        file: BinaryIO,
+        file_path: str,
+        content_type: str = "video/mp4",
+    ) -> str:
+        """
+        指定したパスにファイルをアップロード
+
+        Args:
+            file: ファイルオブジェクト
+            file_path: 保存先のファイルパス（キー）
+            content_type: MIMEタイプ
+
+        Returns:
+            保存先のファイルパス（キー）
+        """
+        self.s3_client.upload_fileobj(
+            file,
+            self.bucket,
+            file_path,
+            ExtraArgs={"ContentType": content_type},
+        )
+        return file_path
+
     def download_file(self, file_path: str, destination: str) -> None:
         self.s3_client.download_file(self.bucket, file_path, destination)
 
