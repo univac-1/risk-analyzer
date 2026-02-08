@@ -1,0 +1,86 @@
+.risk-graph {
+  position: relative;
+  height: 140px;
+  width: 100%;
+  background: #0b1120;
+  border-radius: 14px;
+  padding: 0.5rem 0.75rem;
+}
+
+.risk-graph__svg {
+  height: 100%;
+  width: 100%;
+}
+
+.risk-graph__grid {
+  stroke: rgba(148, 163, 184, 0.4);
+  stroke-width: 0.3;
+  stroke-dasharray: 2, 2;
+}
+
+.risk-graph__highlight {
+  fill: rgba(239, 68, 68, 0.12);
+}
+
+.risk-graph__line {
+  fill: none;
+  stroke: #38bdf8;
+  stroke-width: 0.6;
+}
+
+.risk-graph__cursor {
+  stroke: rgba(56, 189, 248, 0.9);
+  stroke-width: 0.4;
+}
+
+.risk-graph__label {
+  position: absolute;
+  left: 0.75rem;
+  font-size: 0.7rem;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.risk-graph__label--top {
+  top: 0.35rem;
+}
+
+.risk-graph__label--bottom {
+  bottom: 0.35rem;
+}
+
+.risk-graph__current {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.75);
+  color: rgba(248, 250, 252, 0.9);
+  font-size: 0.75rem;
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.risk-graph__current-value {
+  font-weight: 600;
+}
+
+.risk-graph__current-value--high {
+  color: #f87171;
+}
+
+.risk-graph__current-value--medium {
+  color: #fbbf24;
+}
+
+.risk-graph__current-value--low {
+  color: #4ade80;
+}
+
+@media (max-width: 640px) {
+  .risk-graph {
+    height: 120px;
+    padding: 0.4rem 0.5rem;
+  }
+}
