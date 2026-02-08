@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.api.routes import videos, jobs
+from app.api.routes import videos, jobs, editor
 
 settings = get_settings()
 
@@ -23,6 +23,7 @@ app.add_middleware(
 
 app.include_router(videos.router, prefix="/api/videos", tags=["videos"])
 app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs"])
+app.include_router(editor.router, prefix="/api/jobs", tags=["editor"])
 
 
 @app.get("/health")
