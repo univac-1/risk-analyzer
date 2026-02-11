@@ -112,7 +112,21 @@ export function JobListComponent() {
                 <span className="job-name">{job.video_name}</span>
                 <span className="job-date">{formatDate(job.created_at)}</span>
               </div>
-              <StatusBadge status={job.status} />
+              <div className="job-actions">
+                {job.status === 'completed' && (
+                  <button
+                    className="job-edit-button"
+                    aria-label="編集"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate(`/jobs/${job.id}/editor`)
+                    }}
+                  >
+                    編集
+                  </button>
+                )}
+                <StatusBadge status={job.status} />
+              </div>
             </div>
           ))}
         </div>
