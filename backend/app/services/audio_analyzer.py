@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from google.cloud import speech_v2 as speech
 from google.cloud.speech_v2.types import cloud_speech
+from google.api_core.client_options import ClientOptions
 
 from app.config import get_settings
 from app.services.storage import StorageService
@@ -31,7 +32,11 @@ class TranscriptionResult:
 class AudioAnalyzerService:
     def __init__(self):
         self.storage_service = StorageService()
-        self.speech_client = speech.SpeechClient()
+        self.speech_client = speech.SpeechClient(
+            client_options=ClientOptions(
+                api_endpoint="us-central1-speech.googleapis.com"
+            )
+        )
         self.project_id = settings.google_cloud_project
 
     def extract_audio(self, video_path: str) -> Optional[str]:
@@ -101,15 +106,12 @@ class AudioAnalyzerService:
             features=cloud_speech.RecognitionFeatures(
                 enable_word_time_offsets=True,
                 enable_automatic_punctuation=True,
-                diarization_config=cloud_speech.SpeakerDiarizationConfig(
-                    min_speaker_count=1,
-                    max_speaker_count=6,
-                ),
+                # chirp_2 は diarization_config 非対応のため削除
             ),
         )
 
         request = cloud_speech.RecognizeRequest(
-            recognizer=f"projects/{self.project_id}/locations/asia-northeast1/recognizers/_",
+            recognizer=f"projects/{self.project_id}/locations/us-central1/recognizers/_",
             config=config,
             content=audio_content,
         )

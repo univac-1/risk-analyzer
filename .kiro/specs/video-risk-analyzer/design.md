@@ -9,9 +9,9 @@
 **Impact**: 投稿前チェックを経験と勘から、AI解析に基づく客観的リスク評価へ移行させ、炎上リスクの軽減と担当者の心理的負担軽減を実現する。
 
 ### Goals
-- 動画内の音声・テキスト・映像を並列解析し、炎上リスク箇所を自動検出
+- 動画内の音声とGemini統合解析による映像・テキスト分析を並列実行し、炎上リスク箇所を自動検出
 - リスク箇所をタイムコード・根拠・スコア付きで提示
-- 攻撃性・差別性・誤解を招く表現の3観点でリスク評価
+- 攻撃性・差別性・誤解を招く表現・迷惑行為の4観点でリスク評価
 - 解析進捗のリアルタイム表示
 
 ### Non-Goals
@@ -42,15 +42,13 @@ graph TB
         CeleryWorker[Celery Worker]
         Orchestrator[Analysis Orchestrator]
         AudioAnalyzer[Audio Analyzer]
-        OCRAnalyzer[OCR Analyzer]
-        VideoAnalyzer[Video Analyzer]
+        VideoAnalyzer[Gemini Video Analyzer]
         RiskEvaluator[Risk Evaluator]
         ResultAggregator[Result Aggregator]
     end
 
     subgraph GoogleCloudAI[Google Cloud AI]
         SpeechToText[Speech-to-Text API]
-        VideoIntelligence[Video Intelligence API]
         GeminiAPI[Gemini API via Vertex AI]
     end
 
@@ -67,13 +65,10 @@ graph TB
     Redis -->|タスク取得| CeleryWorker
     CeleryWorker --> Orchestrator
     Orchestrator --> AudioAnalyzer
-    Orchestrator --> OCRAnalyzer
     Orchestrator --> VideoAnalyzer
     AudioAnalyzer --> SpeechToText
-    OCRAnalyzer --> VideoIntelligence
     VideoAnalyzer --> GeminiAPI
     AudioAnalyzer --> RiskEvaluator
-    OCRAnalyzer --> RiskEvaluator
     VideoAnalyzer --> RiskEvaluator
     RiskEvaluator --> GeminiAPI
     RiskEvaluator --> ResultAggregator
@@ -85,7 +80,7 @@ graph TB
 ```
 
 **Architecture Integration**:
-- **Selected pattern**: 非同期タスクキュー + 並列パイプラインアーキテクチャ — 長時間処理をバックグラウンドで実行し、3種類の解析を並列実行
+- **Selected pattern**: 非同期タスクキュー + 並列パイプラインアーキテクチャ — 長時間処理をバックグラウンドで実行し、音声解析とGemini統合解析の2種類の解析を並列実行
 - **Domain boundaries**: API（リクエスト受付）、Worker（解析処理）、プレゼンテーション（UI）の3ドメインを分離
 - **New components rationale**: Celery + Redisによる非同期タスク処理で、APIのレスポンス性能とスケーラビリティを確保
 - **Async processing**: アップロード後即座にジョブIDを返却し、解析処理はWorkerで非同期実行
@@ -102,11 +97,11 @@ graph TB
 | Cache/Broker | Redis 7 | タスクブローカー、進捗キャッシュ | ローカル/GCPともRedis |
 | File Storage | Google Cloud Storage | 動画ファイル一時保存 | ローカルはMinIO（S3互換） |
 | Container | Docker + docker-compose | ローカル開発環境 | マルチコンテナ構成 |
-| External APIs | Google Cloud Speech-to-Text, Video Intelligence API, Gemini API (Vertex AI) | 音声・OCR・リスク評価 | ハッカソン必須要件 |
+| External APIs | Google Cloud Speech-to-Text, Gemini API (Vertex AI) | 音声・テキスト抽出・映像解析・リスク評価 | ハッカソン必須要件 |
 
 **ハッカソン制約対応**:
 - アプリ実行: Cloud Run（必須）
-- AI技術: Vertex AI / Gemini API / Speech-to-Text / Video Intelligence（必須）
+- AI技術: Vertex AI / Gemini API / Speech-to-Text（必須）
 
 **開発フェーズ目標**:
 - **Phase 1（本開発の目標）**: ローカル環境での動作確認
@@ -146,7 +141,6 @@ graph TB
 
     subgraph ExternalServices[Google Cloud APIs]
         SpeechToText[Speech-to-Text API]
-        VideoIntelligence[Video Intelligence API]
         GeminiAPI[Gemini API]
     end
 
@@ -160,7 +154,6 @@ graph TB
     CeleryWorker --> PostgreSQL
     CeleryWorker --> MinIO
     CeleryWorker --> SpeechToText
-    CeleryWorker --> VideoIntelligence
     CeleryWorker --> GeminiAPI
 ```
 
@@ -203,7 +196,6 @@ graph TB
 
     subgraph GoogleCloudAI[Google Cloud AI]
         SpeechToText[Speech-to-Text API]
-        VideoIntelligence[Video Intelligence API]
         GeminiAPI[Gemini API]
     end
 
@@ -218,7 +210,6 @@ graph TB
     WorkerService --> PostgreSQLManaged
     WorkerService --> GCS
     WorkerService --> SpeechToText
-    WorkerService --> VideoIntelligence
     WorkerService --> GeminiAPI
 ```
 
@@ -278,7 +269,6 @@ sequenceDiagram
     participant Worker
     participant Orchestrator
     participant AudioAnalyzer
-    participant OCRAnalyzer
     participant VideoAnalyzer
     participant RiskEvaluator
     participant DB
@@ -294,15 +284,10 @@ sequenceDiagram
         AudioAnalyzer-->>Orchestrator: 文字起こし結果
         AudioAnalyzer->>Redis: 進捗更新 (audio: completed)
     and
-        Orchestrator->>OCRAnalyzer: OCR解析開始
-        OCRAnalyzer->>Redis: 進捗更新 (ocr: processing)
-        OCRAnalyzer-->>Orchestrator: テキスト抽出結果
-        OCRAnalyzer->>Redis: 進捗更新 (ocr: completed)
-    and
-        Orchestrator->>VideoAnalyzer: 映像解析開始
-        VideoAnalyzer->>Redis: 進捗更新 (video: processing)
-        VideoAnalyzer-->>Orchestrator: 映像内容結果
-        VideoAnalyzer->>Redis: 進捗更新 (video: completed)
+        Orchestrator->>VideoAnalyzer: Gemini統合解析開始
+        VideoAnalyzer->>Redis: 進捗更新 (gemini_video_ocr: processing)
+        VideoAnalyzer-->>Orchestrator: 映像内容・テキスト抽出結果
+        VideoAnalyzer->>Redis: 進捗更新 (gemini_video_ocr: completed)
     end
 
     Orchestrator->>RiskEvaluator: 統合リスク評価
@@ -373,7 +358,7 @@ sequenceDiagram
 - 動画アップロード後、即座に202 AcceptedとジョブIDを返却（非同期処理）
 - 解析処理はCelery Workerで実行し、ブラウザを閉じても継続
 - 進捗状況はRedisにキャッシュし、ポーリングまたはSSEで取得
-- 3つの解析を並列実行し、全完了後にリスク評価を実行
+- 2つの解析（音声解析・Gemini統合解析）を並列実行し、全完了後にリスク評価を実行
 - ジョブ一覧から過去の解析結果を確認可能
 
 ## Requirements Traceability
@@ -382,9 +367,8 @@ sequenceDiagram
 |-------------|---------|------------|------------|-------|
 | 1.1-1.5 | 動画アップロード | UploadComponent, API Gateway | VideoUploadRequest | アップロード・タスク登録フロー |
 | 2.1-2.4 | 音声文字起こし | AudioAnalyzer, Worker | TranscriptionResult | 非同期解析フロー |
-| 3.1-3.4 | 画面内テキスト抽出 | OCRAnalyzer, Worker | OCRResult | 非同期解析フロー |
-| 4.1-4.4 | 映像内容解析 | VideoAnalyzer, Worker | VideoAnalysisResult | 非同期解析フロー |
-| 5.1-5.7 | 炎上リスク評価 | RiskEvaluator, Worker | RiskAssessment | 非同期解析フロー |
+| 3.1-3.5, 4.1-4.4 | 画面内テキスト抽出・映像内容解析 | VideoAnalyzer (Gemini統合), Worker | GeminiVideoAnalysisResult | 非同期解析フロー |
+| 5.1-5.8 | 炎上リスク評価 | RiskEvaluator, Worker | RiskAssessment | 非同期解析フロー |
 | 6.1-6.6 | 結果表示 | ResultsComponent | AnalysisResult | 進捗確認・結果取得フロー |
 | 7.1-7.4 | 解析進捗管理 | ProgressComponent, Redis | ProgressUpdate | 進捗確認・結果取得フロー |
 | 8.1-8.6 | 非同期タスク処理 | Celery, Redis, JobListComponent | AnalysisJob | 全フロー |
@@ -402,9 +386,8 @@ sequenceDiagram
 | ProgressService | Backend | 進捗管理サービス | 7.1-7.4, 8.4 | Redis (P0) | Service |
 | Orchestrator | Worker | 解析オーケストレーション | 2-5 | Analyzers (P0), RiskEvaluator (P0) | Service |
 | AudioAnalyzer | Analysis | 音声文字起こし | 2.1-2.4 | Speech-to-Text API (P0) | Service |
-| OCRAnalyzer | Analysis | テキスト抽出 | 3.1-3.4 | Video Intelligence API (P0) | Service |
-| VideoAnalyzer | Analysis | 映像内容解析 | 4.1-4.4 | Gemini API (P0) | Service |
-| RiskEvaluator | Risk | リスク評価統合 | 5.1-5.7 | Gemini API (P0) | Service |
+| VideoAnalyzer | Analysis | Geminiネイティブ動画解析（テキスト抽出・映像内容解析の統合） | 3.1-3.5, 4.1-4.4 | Gemini API (Vertex AI) — 動画解析 (P0) | Service |
+| RiskEvaluator | Risk | リスク評価統合 | 5.1-5.8 | Gemini API (P0) | Service |
 
 ### Backend
 
@@ -494,7 +477,7 @@ class ProgressStatus(BaseModel):
     job_id: str
     status: JobStatus
     overall: float
-    phases: dict[str, PhaseProgress]  # audio, ocr, video, risk
+    phases: dict[str, PhaseProgress]  # audio, gemini_video_ocr, risk
     estimated_remaining_seconds: float | None
 ```
 
@@ -601,13 +584,13 @@ class ProgressServiceInterface(ABC):
 | Requirements | 2.1, 3.1, 4.1, 5.1 |
 
 **Responsibilities & Constraints**
-- 3つの解析器を並列起動し、完了を待機
+- 2つの解析器（AudioAnalyzer、VideoAnalyzer）を並列起動し、完了を待機
 - 進捗状況の集約とSSE通知
 - 部分失敗時のグレースフルデグラデーション
 
 **Dependencies**
 - Inbound: API Gateway — 解析リクエスト (P0)
-- Outbound: AudioAnalyzer, OCRAnalyzer, VideoAnalyzer — 解析実行 (P0)
+- Outbound: AudioAnalyzer, VideoAnalyzer — 解析実行 (P0)
 - Outbound: RiskEvaluator — リスク評価実行 (P0)
 
 **Contracts**: Service [x]
@@ -670,80 +653,48 @@ class AudioAnalyzerService(ABC):
         pass
 ```
 
-#### OCRAnalyzer
+#### VideoAnalyzer（Gemini統合動画解析）
 
 | Field | Detail |
 |-------|--------|
-| Intent | Google Cloud Video Intelligence APIを用いたテキスト抽出 |
-| Requirements | 3.1-3.4 |
+| Intent | Gemini API（Vertex AI）のネイティブ動画入力機能を用いた映像内容解析・画面内テキスト抽出の統合処理 |
+| Requirements | 3.1-3.5, 4.1-4.4 |
 
 **Responsibilities & Constraints**
-- 動画フレームからのテキスト検出
-- タイムコード付きテキスト抽出結果生成
+- Gemini APIのネイティブ動画入力機能で動画全体を一括解析
+- 映像内の人物・物体・行動・シーンを検出・分類（Req 4.1-4.4）
+- 動画内に表示されるテキストを抽出し、タイムコードを付与（Req 3.1-3.2）
+- Geminiから提供されるテキストの信頼度を考慮し、閾値以下の低信頼度テキストをリスク評価から除外（Req 3.3）
+- 抽出テキストの日本語比率を判定し、一定以下の比率のテキストをリスク評価から除外（Req 3.4）
+- テキスト未検出時はテキストなしとして記録し、映像解析を継続（Req 3.5）
+- 人物の表情・ジェスチャー・服装などの視覚的特徴を記録（Geminiの出力に応じて調整）（Req 4.3）
+- シーンの状況（場所・雰囲気・コンテキスト）を分類（Geminiの出力に応じて調整）（Req 4.4）
 
 **Dependencies**
-- External: Google Cloud Video Intelligence API — OCR処理 (P0)
+- External: Gemini API (Vertex AI) — ネイティブ動画解析 (P0)
 
 **Contracts**: Service [x]
 
 ##### Service Interface
 
 ```python
-class Vertex(BaseModel):
-    x: float
-    y: float
-
-class BoundingBox(BaseModel):
-    vertices: list[Vertex]
-
 class TextAnnotation(BaseModel):
     text: str
     start_time: float
     end_time: float
-    bounding_box: BoundingBox
     confidence: float
+    japanese_ratio: float
 
-class OCRResult(BaseModel):
-    text_annotations: list[TextAnnotation]
-    has_text: bool
-
-class OCRAnalyzerService(ABC):
-    @abstractmethod
-    async def analyze(self, video_path: str) -> OCRResult:
-        pass
-```
-
-#### VideoAnalyzer
-
-| Field | Detail |
-|-------|--------|
-| Intent | Gemini API（Vertex AI）を用いた映像内容解析 |
-| Requirements | 4.1-4.4 |
-
-**Responsibilities & Constraints**
-- フレームサンプリングと画像抽出
-- Gemini APIで人物・物体・行動・シーンを解析（マルチモーダル対応）
-
-**Dependencies**
-- External: Gemini API (Vertex AI) — 画像解析 (P0)
-
-**Contracts**: Service [x]
-
-##### Service Interface
-
-```python
 class PersonAttributes(BaseModel):
     expression: str
     gesture: str
     attire: str
 
 class PersonDetection(BaseModel):
-    bounding_box: BoundingBox
     attributes: PersonAttributes
 
 class ObjectDetection(BaseModel):
     label: str
-    bounding_box: BoundingBox
     confidence: float
 
 class SceneClassification(BaseModel):
@@ -757,12 +708,14 @@ class FrameAnalysis(BaseModel):
     objects: list[ObjectDetection]
     scene: SceneClassification
 
-class VideoAnalysisResult(BaseModel):
+class GeminiVideoAnalysisResult(BaseModel):
     frames: list[FrameAnalysis]
+    text_annotations: list[TextAnnotation]
+    has_text: bool
 
 class VideoAnalyzerService(ABC):
     @abstractmethod
-    async def analyze(self, video_path: str) -> VideoAnalysisResult:
+    async def analyze(self, video_path: str, confidence_threshold: float = 0.7, japanese_ratio_threshold: float = 0.3) -> GeminiVideoAnalysisResult:
         pass
 ```
 
@@ -773,12 +726,12 @@ class VideoAnalyzerService(ABC):
 | Field | Detail |
 |-------|--------|
 | Intent | 解析結果を統合し、炎上リスクを評価 |
-| Requirements | 5.1-5.7 |
+| Requirements | 5.1-5.8 |
 
 **Responsibilities & Constraints**
-- 音声・OCR・映像の解析結果を統合
+- 音声解析結果とGemini統合動画解析結果を統合
 - メタ情報（投稿先媒体・ターゲット）を考慮したリスク評価
-- 攻撃性・差別性・誤解を招く表現の3観点で評価
+- 攻撃性・差別性・誤解を招く表現・迷惑行為の4観点で評価
 - リスクスコアと根拠の生成
 
 **Dependencies**
@@ -794,6 +747,7 @@ class RiskCategory(str, Enum):
     aggressiveness = "aggressiveness"
     discrimination = "discrimination"
     misleading = "misleading"
+    public_nuisance = "public_nuisance"
 
 class RiskLevel(str, Enum):
     high = "high"
@@ -803,8 +757,8 @@ class RiskLevel(str, Enum):
 
 class RiskSource(str, Enum):
     audio = "audio"
-    ocr = "ocr"
     video = "video"
+    text_in_video = "text_in_video"
 
 class RiskItem(BaseModel):
     id: str
@@ -828,8 +782,7 @@ class RiskEvaluatorService(ABC):
     async def evaluate(
         self,
         transcription: TranscriptionResult,
-        ocr: OCRResult,
-        video_analysis: VideoAnalysisResult,
+        video_analysis: GeminiVideoAnalysisResult,
         metadata: VideoMetadata
     ) -> RiskAssessment:
         pass
@@ -843,8 +796,7 @@ class RiskEvaluatorService(ABC):
 erDiagram
     AnalysisJob ||--|| Video : contains
     AnalysisJob ||--o| TranscriptionResult : produces
-    AnalysisJob ||--o| OCRResult : produces
-    AnalysisJob ||--o| VideoAnalysisResult : produces
+    AnalysisJob ||--o| GeminiVideoAnalysisResult : produces
     AnalysisJob ||--o| RiskAssessment : produces
     RiskAssessment ||--o{ RiskItem : contains
 
@@ -890,7 +842,7 @@ erDiagram
 **RiskItem**
 - 個別のリスク検出結果
 - タイムコード、カテゴリ、スコア、根拠を保持
-- ソース（音声/OCR/映像）の識別
+- ソース（音声/映像/動画内テキスト）の識別
 
 ## Error Handling
 
@@ -918,13 +870,13 @@ erDiagram
 
 ### Unit Tests
 - AudioAnalyzer: モック音声データの文字起こし変換
-- OCRAnalyzer: モックフレームのテキスト抽出
-- RiskEvaluator: 各リスクカテゴリの評価ロジック
+- VideoAnalyzer: Gemini統合動画解析のモック（映像内容解析・テキスト抽出・信頼度フィルタ・日本語比率フィルタ）
+- RiskEvaluator: 各リスクカテゴリ（攻撃性・差別性・誤解を招く表現・迷惑行為）の評価ロジック
 - バリデーション: ファイル形式・サイズ検証
 
 ### Integration Tests
 - API Gateway → Orchestrator → Analyzers の連携
-- 外部API統合（Speech-to-Text, Video Intelligence, Gemini API）
+- 外部API統合（Speech-to-Text, Gemini API）
 - SSE進捗通知の動作確認
 - Cloud SQL永続化と取得
 
@@ -986,8 +938,7 @@ video-risk-analyzer/
 │   │   ├── services/
 │   │   │   ├── orchestrator.py
 │   │   │   ├── audio_analyzer.py
-│   │   │   ├── ocr_analyzer.py
-│   │   │   ├── video_analyzer.py
+│   │   │   ├── video_analyzer.py  # Gemini統合動画解析（テキスト抽出含む）
 │   │   │   ├── risk_evaluator.py
 │   │   │   └── progress.py     # 進捗管理サービス
 │   │   ├── models/
