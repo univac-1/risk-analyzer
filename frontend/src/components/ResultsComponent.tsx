@@ -26,8 +26,10 @@ const RISK_SOURCE_LABELS: Record<RiskSource, string> = {
 
 function formatTimestamp(seconds: number): string {
   const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  const secs = seconds % 60
+  const secsStr = secs.toFixed(2)
+  const secsFormatted = Number(secsStr) < 10 ? `0${secsStr}` : secsStr
+  return `${mins.toString().padStart(2, '0')}:${secsFormatted}`
 }
 
 function RiskLevelBadge({ level }: { level: RiskLevel }) {
