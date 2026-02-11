@@ -94,11 +94,11 @@ class GeminiVideoAnalysisService:
             ],
             "risks": [
                 {{
-                    "timestamp": 0.0,
-                    "end_timestamp": 0.0,
+                    "timestamp": リスクが始まる動画内のタイムスタンプ（秒単位の数値、例: 12.5）,
+                    "end_timestamp": リスクが終わる動画内のタイムスタンプ（秒単位の数値、例: 18.0）,
                     "category": "aggressiveness" | "discrimination" | "misleading" | "public_nuisance",
                     "subcategory": "具体的なリスク種別",
-                    "score": 0,
+                    "score": 0から100の数値,
                     "level": "low" | "medium" | "high",
                     "rationale": "リスクと判断した具体的な根拠",
                     "source": "video",
@@ -106,6 +106,7 @@ class GeminiVideoAnalysisService:
                 }}
             ]
         }}
+        注意: risksのtimestampとend_timestampには、動画内の実際のタイムスタンプ（秒単位の数値）を必ず記載してください。0.0は使用しないでください。
         JSONのみを出力し、説明は不要です。
         """
 
