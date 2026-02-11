@@ -381,36 +381,49 @@ export function EditorPage() {
         </div>
       )}
 
-      {exportStatus && (
+      {(exportStatus || exportError) && (
         <div className="editor-export">
-          <div>
-            <strong>エクスポート状況:</strong> {exportStatus}
-          </div>
-          <div className="editor-export__progress">
-            <span>{exportProgress.toFixed(0)}%</span>
-            <div className="editor-export__bar">
-              <div
-                className="editor-export__fill"
-                style={{ width: `${exportProgress}%` }}
-              />
-            </div>
-          </div>
-          <div className="editor-export__actions">
-            {downloadUrl && (
-              <a className="primary-button" href={downloadUrl}>
-                ダウンロード
-              </a>
-            )}
-            {exportStatus === 'failed' && (
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={handleRetryExport}
-              >
-                再試行
-              </button>
-            )}
-          </div>
+          {exportStatus && (
+            <>
+              <div>
+                <strong>エクスポート状況:</strong> {exportStatus}
+              </div>
+              <div className="editor-export__progress">
+                <span>{exportProgress.toFixed(0)}%</span>
+                <div className="editor-export__bar">
+                  <div
+                    className="editor-export__fill"
+                    style={{ width: `${exportProgress}%` }}
+                  />
+                </div>
+              </div>
+              <div className="editor-export__actions">
+                {downloadUrl && (
+                  <a className="primary-button" href={downloadUrl}>
+                    ダウンロード
+                  </a>
+                )}
+                {exportStatus === 'completed' && (
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => navigate(`/jobs/${id}/results`)}
+                  >
+                    結果に戻る
+                  </button>
+                )}
+                {exportStatus === 'failed' && (
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={handleRetryExport}
+                  >
+                    再試行
+                  </button>
+                )}
+              </div>
+            </>
+          )}
           {exportError && <span className="error">{exportError}</span>}
         </div>
       )}
@@ -442,6 +455,18 @@ export function EditorPage() {
               編集提案 ({suggestionCount}件)
               <span aria-hidden="true">{sidebarOpen ? '▲' : '▼'}</span>
             </button>
+            {sidebarOpen && (
+              <div className="editor-mobile-suggestions__content">
+                <EditingSuggestions
+                  suggestions={suggestions}
+                  selectedSuggestion={selectedSuggestion}
+                  onSelectSuggestion={setSelectedSuggestion}
+                  onSeekTo={setCurrentTime}
+                  onApplyAction={handleApplyAction}
+                  onApplyAll={handleApplyAll}
+                />
+              </div>
+            )}
           </div>
           <div className="editor-panel">
             <RiskGraph
