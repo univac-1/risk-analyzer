@@ -2,13 +2,14 @@ import concurrent.futures
 from typing import Optional
 import traceback
 import logging
+import uuid
 
 from app.services.progress import ProgressService, PhaseStatus
 
 logger = logging.getLogger(__name__)
 from app.services.audio_analyzer import AudioAnalyzerService
 from app.services.gemini_video_analysis import GeminiVideoAnalysisService, UnifiedVideoAnalysisResult
-from app.services.risk_evaluator import RiskEvaluatorService, RiskAssessment
+from app.services.risk_evaluator import RiskEvaluatorService, RiskAssessment, RiskItem
 from app.models.database import SessionLocal
 from app.models.job import AnalysisJob, RiskItem as DBRiskItem, RiskCategory, RiskLevel, RiskSource
 
@@ -64,10 +65,29 @@ class OrchestratorService:
             except ValueError:
                 risk_level = RiskLevel.none
 
+            # dict → RiskItem 変換
+            risk_items = []
+            for r in unified_analysis_result.risks:
+                try:
+                    risk_items.append(RiskItem(
+                        id=r.get("id", str(uuid.uuid4())),
+                        timestamp=float(r.get("timestamp", 0.0)),
+                        end_timestamp=float(r.get("end_timestamp", 0.0)),
+                        category=RiskCategory(r.get("category", "aggressiveness")),
+                        subcategory=r.get("subcategory", ""),
+                        score=float(r.get("score", 0)),
+                        level=RiskLevel(r.get("level", "low")),
+                        rationale=r.get("rationale", ""),
+                        source=RiskSource(r.get("source", "video")),
+                        evidence=r.get("evidence", ""),
+                    ))
+                except (ValueError, KeyError) as e:
+                    logger.warning(f"[{job_id}] リスクアイテム変換スキップ: {e}")
+
             risk_assessment = RiskAssessment(
                 overall_score=overall_score,
                 risk_level=risk_level,
-                risks=final_risks
+                risks=risk_items,
             )
             risk_result = self.risk_evaluator.result_to_dict(risk_assessment) # Use existing dict conversion
             self.progress_service.update_progress(job_id, "risk", PhaseStatus.completed, 100)
