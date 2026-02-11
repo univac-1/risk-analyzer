@@ -1,36 +1,41 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { api } from '../services/api'
-import { ProgressStatus, PhaseProgress } from '../types'
-import './ProgressComponent.css'
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { api } from "../services/api";
+import { ProgressStatus, PhaseProgress } from "../types";
+import "./ProgressComponent.css";
 
 const PHASE_LABELS: Record<string, string> = {
-  audio: '音声解析',
-  ocr: 'テキスト抽出',
-  video: '映像解析',
-  risk: 'リスク評価',
-}
+  audio: "音声解析",
+  video: "映像解析",
+  risk: "リスク評価",
+};
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: '待機中',
-  processing: '処理中',
-  completed: '完了',
-  failed: '失敗',
-}
+  pending: "待機中",
+  processing: "処理中",
+  completed: "完了",
+  failed: "失敗",
+};
 
 function formatTime(seconds: number | null): string {
-  if (seconds === null || seconds <= 0) return '計算中...'
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
+  if (seconds === null || seconds <= 0) return "計算中...";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
   if (mins > 0) {
-    return `約${mins}分${secs}秒`
+    return `約${mins}分${secs}秒`;
   }
-  return `約${secs}秒`
+  return `約${secs}秒`;
 }
 
-function PhaseProgressBar({ phase, data }: { phase: string; data: PhaseProgress }) {
-  const label = PHASE_LABELS[phase] || phase
-  const statusLabel = STATUS_LABELS[data.status] || data.status
+function PhaseProgressBar({
+  phase,
+  data,
+}: {
+  phase: string;
+  data: PhaseProgress;
+}) {
+  const label = PHASE_LABELS[phase] || phase;
+  const statusLabel = STATUS_LABELS[data.status] || data.status;
 
   return (
     <div className={`phase-progress ${data.status}`}>
@@ -39,45 +44,42 @@ function PhaseProgressBar({ phase, data }: { phase: string; data: PhaseProgress 
         <span className="phase-status">{statusLabel}</span>
       </div>
       <div className="progress-bar">
-        <div
-          className="progress-fill"
-          style={{ width: `${data.progress}%` }}
-        />
+        <div className="progress-fill" style={{ width: `${data.progress}%` }} />
       </div>
       <span className="progress-percent">{data.progress.toFixed(0)}%</span>
     </div>
-  )
+  );
 }
 
 export function ProgressComponent() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const [progress, setProgress] = useState<ProgressStatus | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [progress, setProgress] = useState<ProgressStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return
+    if (!id) return;
 
     const fetchProgress = async () => {
       try {
-        const data = await api.get<ProgressStatus>(`/api/jobs/${id}/progress`)
-        setProgress(data)
+        const data = await api.get<ProgressStatus>(`/api/jobs/${id}/progress`);
+        setProgress(data);
 
-        if (data.status === 'completed') {
-          navigate(`/jobs/${id}/results`)
-        } else if (data.status === 'failed') {
-          setError('解析処理でエラーが発生しました')
+        if (data.status === "completed") {
+          navigate(`/jobs/${id}/results`);
+        } else if (data.status === "failed") {
+          setError("解析処理でエラーが発生しました");
         }
       } catch (err) {
-        setError('進捗の取得に失敗しました')
+        setError("進捗の取得に失敗しました");
       }
-    }
+    };
 
-    fetchProgress()
-    const interval = setInterval(fetchProgress, 2000)
+    fetchProgress();
+    const interval = setInterval(fetchProgress, 2000);
 
-    return () => clearInterval(interval)
-  }, [id, navigate])
+    return () => clearInterval(interval);
+  }, [id, navigate]);
 
   if (error) {
     return (
@@ -85,10 +87,10 @@ export function ProgressComponent() {
         <div className="error-state">
           <h2>エラーが発生しました</h2>
           <p>{error}</p>
-          <button onClick={() => navigate('/')}>トップに戻る</button>
+          <button onClick={() => navigate("/")}>トップに戻る</button>
         </div>
       </div>
-    )
+    );
   }
 
   if (!progress) {
@@ -98,7 +100,7 @@ export function ProgressComponent() {
           <p>読み込み中...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -123,9 +125,11 @@ export function ProgressComponent() {
       </div>
 
       <div className="phases-progress">
-        {Object.entries(progress.phases).map(([phase, data]) => (
-          <PhaseProgressBar key={phase} phase={phase} data={data} />
-        ))}
+        {Object.entries(progress.phases)
+          .filter(([phase]) => phase !== 'ocr')
+          .map(([phase, data]) => (
+            <PhaseProgressBar key={phase} phase={phase} data={data} />
+          ))}
       </div>
 
       <div className="progress-note">
@@ -136,5 +140,5 @@ export function ProgressComponent() {
         </p>
       </div>
     </div>
-  )
+  );
 }
