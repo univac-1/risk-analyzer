@@ -83,6 +83,7 @@ class OrchestratorService:
                     ))
                 except (ValueError, KeyError) as e:
                     logger.warning(f"[{job_id}] リスクアイテム変換スキップ: {e}")
+            logger.info(f"[risk_items：]{risk_items}")
 
             risk_assessment = RiskAssessment(
                 overall_score=overall_score,
