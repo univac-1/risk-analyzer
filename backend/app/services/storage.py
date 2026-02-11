@@ -198,38 +198,38 @@ class GCSStorageService(BaseStorageService):
     def generate_presigned_url(self, file_path: str, expiration: int = 3600) -> str:
         from datetime import timedelta
         import google.auth
-        from google.auth import impersonated_credentials
-        from google.auth.transport import requests
+        from google.auth.transport import requests as auth_requests
 
         blob = self.bucket.blob(file_path)
 
-        # Get service account email from settings or current credentials
-        service_account_email = settings.gcs_service_account_email
+        # Get credentials and service account email
+        credentials, _ = google.auth.default()
 
+        service_account_email = settings.gcs_service_account_email
         if not service_account_email:
-            # Try to get from current credentials
-            credentials, _ = google.auth.default()
             if hasattr(credentials, 'service_account_email'):
                 service_account_email = credentials.service_account_email
             elif hasattr(credentials, 'signer_email'):
                 service_account_email = credentials.signer_email
 
-        # Generate signed URL using IAM (no private key needed)
-        if service_account_email:
-            # Use IAM signBlob API by passing service_account_email
-            return blob.generate_signed_url(
-                version="v4",
-                expiration=timedelta(seconds=expiration),
-                method="GET",
-                service_account_email=service_account_email,
+        if not service_account_email:
+            raise RuntimeError(
+                "GCS署名付きURL生成にはサービスアカウントメールが必要です。"
+                "GCS_SERVICE_ACCOUNT_EMAIL環境変数を設定してください。"
             )
-        else:
-            # Fallback to default (will fail on Cloud Run without private key)
-            return blob.generate_signed_url(
-                version="v4",
-                expiration=timedelta(seconds=expiration),
-                method="GET",
-            )
+
+        # Cloud Runでは秘密鍵がないため、IAM signBlob APIを使用する。
+        # access_tokenが必須。
+        auth_request = auth_requests.Request()
+        credentials.refresh(auth_request)
+
+        return blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(seconds=expiration),
+            method="GET",
+            service_account_email=service_account_email,
+            access_token=credentials.token,
+        )
 
     def delete_file(self, file_path: str) -> None:
         blob = self.bucket.blob(file_path)
