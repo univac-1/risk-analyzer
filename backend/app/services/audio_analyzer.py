@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from google.cloud import speech_v2 as speech
 from google.cloud.speech_v2.types import cloud_speech
+from google.api_core.client_options import ClientOptions
 
 from app.config import get_settings
 from app.services.storage import StorageService
@@ -31,7 +32,11 @@ class TranscriptionResult:
 class AudioAnalyzerService:
     def __init__(self):
         self.storage_service = StorageService()
-        self.speech_client = speech.SpeechClient()
+        self.speech_client = speech.SpeechClient(
+            client_options=ClientOptions(
+                api_endpoint="us-central1-speech.googleapis.com"
+            )
+        )
         self.project_id = settings.google_cloud_project
 
     def extract_audio(self, video_path: str) -> Optional[str]:
