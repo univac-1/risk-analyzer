@@ -106,10 +106,7 @@ class AudioAnalyzerService:
             features=cloud_speech.RecognitionFeatures(
                 enable_word_time_offsets=True,
                 enable_automatic_punctuation=True,
-                diarization_config=cloud_speech.SpeakerDiarizationConfig(
-                    min_speaker_count=1,
-                    max_speaker_count=6,
-                ),
+                # chirp_2 は diarization_config 非対応のため削除
             ),
         )
 
