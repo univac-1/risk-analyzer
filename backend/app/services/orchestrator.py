@@ -8,7 +8,7 @@ from app.services.progress import ProgressService, PhaseStatus
 logger = logging.getLogger(__name__)
 from app.services.audio_analyzer import AudioAnalyzerService
 from app.services.gemini_video_analysis import GeminiVideoAnalysisService, UnifiedVideoAnalysisResult
-from app.services.risk_evaluator import RiskEvaluatorService
+from app.services.risk_evaluator import RiskEvaluatorService, RiskAssessment
 from app.models.database import SessionLocal
 from app.models.job import AnalysisJob, RiskItem as DBRiskItem, RiskCategory, RiskLevel, RiskSource
 

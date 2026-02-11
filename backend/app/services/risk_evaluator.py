@@ -53,10 +53,12 @@ class RiskAssessment:
     risk_level: RiskLevel
     risks: List[RiskItem]
 
+
+class RiskEvaluatorService:
     def evaluate(
         self,
-        unified_analysis: UnifiedVideoAnalysisResult, # New signature
-        metadata: dict, # metadata is still passed by OrchestratorService but not directly used here
+        unified_analysis: UnifiedVideoAnalysisResult,
+        metadata: dict,
     ) -> RiskAssessment:
         """
         Geminiによる統合分析結果に基づいてリスク評価をパースし、整形する。
@@ -80,7 +82,7 @@ class RiskAssessment:
         for risk_data in unified_analysis.risks:
             try:
                 risk = RiskItem(
-                    id=risk_data.get("id", str(uuid.uuid4())), # Use ID from Gemini or generate
+                    id=risk_data.get("id", str(uuid.uuid4())),
                     timestamp=float(risk_data.get("timestamp", 0)),
                     end_timestamp=float(risk_data.get("end_timestamp", risk_data.get("timestamp", 0))),
                     category=RiskCategory(risk_data.get("category", "misleading")),
@@ -88,12 +90,11 @@ class RiskAssessment:
                     score=float(risk_data.get("score", 0)),
                     level=RiskLevel(risk_data.get("level", "low")),
                     rationale=risk_data.get("rationale", ""),
-                    source=RiskSource(risk_data.get("source", "video")), # Source is now always 'video' from Gemini
+                    source=RiskSource(risk_data.get("source", "video")),
                     evidence=risk_data.get("evidence", ""),
                 )
                 risks.append(risk)
             except (ValueError, KeyError) as e:
-                # Log error or handle malformed risk item from Gemini
                 print(f"Error parsing risk item from Gemini: {e} - Data: {risk_data}")
                 continue
 
@@ -102,8 +103,6 @@ class RiskAssessment:
             risk_level=risk_level,
             risks=risks,
         )
-
-        return prompt
 
     def result_to_dict(self, result: RiskAssessment) -> dict:
         """結果を辞書形式に変換"""
