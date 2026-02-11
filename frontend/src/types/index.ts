@@ -4,7 +4,7 @@ export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed'
 
 export type PhaseStatus = 'pending' | 'processing' | 'completed' | 'failed'
 
-export type RiskCategory = 'aggressiveness' | 'discrimination' | 'misleading'
+export type RiskCategory = 'aggressiveness' | 'discrimination' | 'misleading' | 'public_nuisance'
 
 export type RiskLevel = 'high' | 'medium' | 'low' | 'none'
 

@@ -15,6 +15,7 @@ const RISK_CATEGORY_LABELS: Record<RiskCategory, string> = {
   aggressiveness: '攻撃性',
   discrimination: '差別性',
   misleading: '誤解を招く表現',
+  public_nuisance: '迷惑行為',
 }
 
 const RISK_SOURCE_LABELS: Record<RiskSource, string> = {
