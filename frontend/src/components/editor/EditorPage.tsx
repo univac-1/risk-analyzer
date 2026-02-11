@@ -84,6 +84,9 @@ export function EditorPage() {
     const loadExportStatus = async () => {
       try {
         const status = await editorApi.getExportStatus(id)
+        if (status.status === 'none') {
+          return
+        }
         setExportStatus(status.status)
         setExportProgress(status.progress)
         if (status.status === 'failed') {
@@ -93,10 +96,7 @@ export function EditorPage() {
           const download = await editorApi.getExportDownload(id)
           setDownloadUrl(download.url)
         }
-      } catch (err) {
-        if (err instanceof Error && err.message.includes('404')) {
-          return
-        }
+      } catch {
         setExportError('エクスポート状況の取得に失敗しました')
       }
     }

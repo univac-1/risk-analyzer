@@ -8,6 +8,7 @@ from app.models.job import AnalysisJob, Video
 from app.schemas.editor import (
     EditSessionUpdate,
     EditSessionResponse,
+    ExportJobStatus as SchemaExportJobStatus,
     VideoUrlResponse,
     ExportResponse,
     ExportStatusResponse,
@@ -176,9 +177,8 @@ async def get_export_status(job_id: str):
 
         session = EditSessionService(db).get_session(job_id)
         if not session:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="編集セッションが見つかりません",
+            return ExportStatusResponse(
+                status=SchemaExportJobStatus.none,
             )
 
         export_job = (
@@ -188,9 +188,8 @@ async def get_export_status(job_id: str):
             .first()
         )
         if not export_job:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="エクスポートジョブが見つかりません",
+            return ExportStatusResponse(
+                status=SchemaExportJobStatus.none,
             )
 
         progress_service = ExportProgressService()

@@ -76,7 +76,7 @@ export type EditActionType = 'cut' | 'mute' | 'mosaic' | 'telop' | 'skip'
 
 export type EditSessionStatus = 'draft' | 'exporting' | 'completed'
 
-export type ExportJobStatus = 'pending' | 'processing' | 'completed' | 'failed'
+export type ExportJobStatus = 'none' | 'pending' | 'processing' | 'completed' | 'failed'
 
 export interface MosaicOptions {
   x: number
@@ -128,7 +128,7 @@ export interface ExportResponse {
 }
 
 export interface ExportStatusResponse {
-  export_id: string
+  export_id: string | null
   status: ExportJobStatus
   progress: number
   error_message?: string | null

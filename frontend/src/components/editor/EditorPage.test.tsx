@@ -72,7 +72,7 @@ vi.mock('../../services/editorApi', () => ({
     getEditSession: vi.fn().mockResolvedValue({ id: 's1', job_id: 'job-1', status: 'draft', actions: [], created_at: '', updated_at: '' }),
     updateEditSession: vi.fn().mockResolvedValue({ id: 's1', job_id: 'job-1', status: 'draft', actions: [], created_at: '', updated_at: '' }),
     startExport: vi.fn().mockResolvedValue({ export_id: 'e1', status: 'pending' }),
-    getExportStatus: vi.fn().mockRejectedValue(new Error('404')),
+    getExportStatus: vi.fn().mockResolvedValue({ export_id: null, status: 'none', progress: 0 }),
     getExportDownload: vi.fn().mockResolvedValue({ url: '', expires_at: '' }),
   },
 }))

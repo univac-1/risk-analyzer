@@ -140,7 +140,7 @@ describe('EditorPage 統合テスト (Task 13.2)', () => {
       url: 'https://example.com/video.mp4',
       expires_at: '2026-01-01T02:00:00Z',
     })
-    mockGetExportStatus.mockRejectedValue(new Error('404'))
+    mockGetExportStatus.mockResolvedValue({ export_id: null, status: 'none', progress: 0 })
   })
 
   // ---- 編集アクション追加→保存 ----
@@ -321,7 +321,7 @@ describe('EditorPage 統合テスト (Task 13.2)', () => {
       mockStartExport.mockRejectedValue(
         new Error('エクスポート開始に失敗しました')
       )
-      mockGetExportStatus.mockRejectedValue(new Error('404'))
+      mockGetExportStatus.mockResolvedValue({ export_id: null, status: 'none', progress: 0 })
 
       renderEditor()
 

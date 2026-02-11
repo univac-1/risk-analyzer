@@ -25,6 +25,7 @@ class EditSessionStatus(str, Enum):
 
 class ExportJobStatus(str, Enum):
     """Status of an export job."""
+    none = "none"
     pending = "pending"
     processing = "processing"
     completed = "completed"
@@ -122,9 +123,9 @@ class ExportResponse(BaseModel):
 
 class ExportStatusResponse(BaseModel):
     """Response schema for export status."""
-    export_id: UUID
+    export_id: Optional[UUID] = None
     status: ExportJobStatus
-    progress: float = Field(..., ge=0, le=100, description="Progress percentage")
+    progress: float = Field(default=0.0, ge=0, le=100, description="Progress percentage")
     error_message: Optional[str] = None
 
 
