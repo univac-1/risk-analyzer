@@ -79,19 +79,8 @@ class OrchestratorService:
                 # detected_texts -> ocr_result
                 # detected_objects, detected_events -> video_analysis_result
                 
-                # For now, prepare args as expected by old evaluate method
-                ocr_input_for_risk_evaluator = {"text_annotations": unified_analysis_result.detected_texts} if unified_analysis_result else None
-                video_analysis_input_for_risk_evaluator = {
-                    "frames": [], # Mocking frames structure for compatibility
-                    "events": unified_analysis_result.detected_events,
-                    "objects": unified_analysis_result.detected_objects
-                } if unified_analysis_result else None
-
-
                 risk_assessment = self.risk_evaluator.evaluate(
-                    transcription_result,
-                    ocr_input_for_risk_evaluator,
-                    video_analysis_input_for_risk_evaluator,
+                    unified_analysis_result,
                     metadata,
                 )
                 risk_result = self.risk_evaluator.result_to_dict(risk_assessment)

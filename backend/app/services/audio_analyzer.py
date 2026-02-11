@@ -109,7 +109,7 @@ class AudioAnalyzerService:
         )
 
         request = cloud_speech.RecognizeRequest(
-            recognizer=f"projects/{self.project_id}/locations/asia-northeast1/recognizers/_",
+            recognizer=f"projects/{self.project_id}/locations/global/recognizers/_",
             config=config,
             content=audio_content,
         )

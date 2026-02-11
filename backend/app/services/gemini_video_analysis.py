@@ -98,7 +98,7 @@ class GeminiVideoAnalysisService:
         """
 
         contents = [prompt_text, video_part]
-        response = self.model.generate_content(contents, request_options={"timeout": 600}) # Long timeout for video analysis
+        response = self.model.generate_content(contents)
 
         response_text = response.text.strip()
         
