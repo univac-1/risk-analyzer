@@ -1,11 +1,12 @@
 import logging
+import uuid
 from datetime import datetime, timezone
 
 from celery import shared_task
 
 from app.celery_app import celery_app
 from app.models.database import SessionLocal
-from app.models.job import AnalysisJob, JobStatus
+from app.models.job import AnalysisJob, JobStatus, RiskItem as DBRiskItem, RiskCategory, RiskLevel, RiskSource
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,27 @@ def analyze_video(self, job_id: str, video_path: str, metadata: dict) -> dict:
             job.transcription_result = result.get("transcription")
             job.ocr_result = result.get("ocr")
             job.video_analysis_result = result.get("video_analysis")
+            db.commit()
+
+            # リスクアイテムをDBに保存
+            for risk_data in result.get("risks", []):
+                try:
+                    risk_item = DBRiskItem(
+                        id=uuid.UUID(risk_data["id"]) if "id" in risk_data else uuid.uuid4(),
+                        job_id=job.id,
+                        timestamp=float(risk_data.get("timestamp", 0.0)),
+                        end_timestamp=float(risk_data.get("end_timestamp", 0.0)),
+                        category=RiskCategory(risk_data.get("category", "aggressiveness")),
+                        subcategory=risk_data.get("subcategory", ""),
+                        score=float(risk_data.get("score", 0.0)),
+                        level=RiskLevel(risk_data.get("level", "low")),
+                        rationale=risk_data.get("rationale", ""),
+                        source=RiskSource(risk_data.get("source", "video")),
+                        evidence=risk_data.get("evidence", ""),
+                    )
+                    db.add(risk_item)
+                except Exception as e:
+                    logger.warning(f"リスクアイテム保存スキップ: {e} - data={risk_data}")
             db.commit()
 
             # 各解析結果の詳細をログ出力
