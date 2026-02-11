@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 import json
+import tempfile
+import os
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part
 from app.config import get_settings
@@ -47,7 +49,17 @@ class GeminiVideoAnalysisService:
         Returns:
             UnifiedVideoAnalysisResult: 統合された動画分析結果。
         """
-        video_part = Part.from_uri(uri=video_path, mime_type="video/mp4")
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            self.storage_service.download_file(video_path, tmp_path)
+            with open(tmp_path, "rb") as f:
+                video_bytes = f.read()
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+        video_part = Part.from_data(data=video_bytes, mime_type="video/mp4")
 
         prompt_text = """この動画コンテンツを詳細に分析し、以下の情報を厳密にJSON形式で提供してください。
         分析結果には、動画内のテキスト、検出されたオブジェクト、主要なイベント、動画全体の要約、および炎上リスク評価を含めてください。
