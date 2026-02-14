@@ -82,7 +82,7 @@ export function Timeline({
             key={`cut-${index}`}
             className="timeline__cut"
             style={{
-              left: `${(range.start / duration) * 100}%`,
+              left: `${(range.start / safeDuration) * 100}%`,
               width: `${((range.end - range.start) / safeDuration) * 100}%`,
             }}
           />
