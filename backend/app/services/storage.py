@@ -187,6 +187,16 @@ class GCSStorageService(BaseStorageService):
         blob.upload_from_file(file, content_type=content_type)
         return file_path
 
+    def upload_file_to_path(
+        self,
+        file: BinaryIO,
+        file_path: str,
+        content_type: str = "video/mp4",
+    ) -> str:
+        blob = self.bucket.blob(file_path)
+        blob.upload_from_file(file, content_type=content_type)
+        return file_path
+
     def download_file(self, file_path: str, destination: str) -> None:
         blob = self.bucket.blob(file_path)
         blob.download_to_filename(destination)
