@@ -68,12 +68,17 @@ export function EditingSuggestions({
 
   const handleApply = (id: string) => {
     const action = actionById[id] ?? 'cut'
+    const telopText =
+      action === 'telop' ? (telopById[id]?.text ?? DEFAULT_TELOP.text) : ''
     const options =
       action === 'mosaic'
         ? mosaicById[id] ?? DEFAULT_MOSAIC
         : action === 'telop'
         ? telopById[id] ?? DEFAULT_TELOP
         : null
+    if (action === 'telop' && !telopText.trim()) {
+      return
+    }
     onApplyAction(id, action, options)
   }
 
@@ -97,6 +102,7 @@ export function EditingSuggestions({
           const action = actionById[suggestion.id] ?? 'cut'
           const mosaicOptions = mosaicById[suggestion.id] ?? DEFAULT_MOSAIC
           const telopOptions = telopById[suggestion.id] ?? DEFAULT_TELOP
+          const isTelopInvalid = action === 'telop' && !telopOptions.text.trim()
 
           return (
             <div
@@ -138,6 +144,7 @@ export function EditingSuggestions({
                 <button
                   type="button"
                   className="primary-button"
+                  disabled={isTelopInvalid}
                   onClick={(event) => {
                     event.stopPropagation()
                     handleApply(suggestion.id)
