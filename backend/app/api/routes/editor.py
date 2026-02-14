@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import StreamingResponse
+import io
 
 from app.models.database import SessionLocal
 from app.models.edit_session import ExportJob, ExportJobStatus
@@ -263,6 +265,59 @@ async def get_export_download(job_id: str):
         return DownloadUrlResponse(
             url=url,
             expires_at=expires_at.isoformat(),
+        )
+    finally:
+        db.close()
+
+
+@router.get("/{job_id}/export/file")
+async def download_export_file(job_id: str):
+    """
+    編集済み動画をバックエンド経由でダウンロード（CORS回避）
+    """
+    db = SessionLocal()
+    try:
+        job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="ジョブが見つかりません",
+            )
+
+        session = EditSessionService(db).get_session(job_id)
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="編集セッションが見つかりません",
+            )
+
+        export_job = (
+            db.query(ExportJob)
+            .filter(
+                ExportJob.session_id == session.id,
+                ExportJob.status == ExportJobStatus.completed,
+            )
+            .order_by(ExportJob.created_at.desc())
+            .first()
+        )
+        if not export_job or not export_job.output_path:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="エクスポート済み動画が見つかりません",
+            )
+
+        storage_service = StorageService()
+        content = storage_service.get_file_content(export_job.output_path)
+
+        filename = export_job.output_path.split("/")[-1]
+
+        return StreamingResponse(
+            io.BytesIO(content),
+            media_type="video/mp4",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Length": str(len(content)),
+            },
         )
     finally:
         db.close()

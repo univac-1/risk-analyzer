@@ -237,11 +237,6 @@ describe('EditorPage 統合テスト (Task 13.2)', () => {
         status: 'completed',
         progress: 100,
       })
-      mockGetExportDownload.mockResolvedValue({
-        url: 'https://example.com/edited.mp4',
-        expires_at: '2026-01-01T03:00:00Z',
-      })
-
       renderEditor()
 
       const downloadButton = await screen.findByText('ダウンロード')

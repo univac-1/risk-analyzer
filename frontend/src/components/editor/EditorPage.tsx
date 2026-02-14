@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { api } from '../../services/api'
+import { api, API_BASE_URL } from '../../services/api'
 import { editorApi } from '../../services/editorApi'
 import type { AnalysisResult, EditActionInput } from '../../types'
 import { useEditSession } from '../../hooks/useEditSession'
@@ -130,8 +130,9 @@ export function EditorPage() {
   }, [id, exportStatus])
 
   const handleDownload = async () => {
-    if (!downloadUrl) return
-    const response = await fetch(downloadUrl)
+    if (!id) return
+    const response = await fetch(`${API_BASE_URL}/api/jobs/${id}/export/file`)
+    if (!response.ok) return
     const blob = await response.blob()
     const objectUrl = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
@@ -410,7 +411,7 @@ export function EditorPage() {
                 </div>
               </div>
               <div className="editor-export__actions">
-                {downloadUrl && (
+                {exportStatus === 'completed' && (
                   <button
                     type="button"
                     className="primary-button"
