@@ -137,10 +137,17 @@ async def start_export(job_id: str):
             ExportJobStatus.pending,
             ExportJobStatus.processing,
         }:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="エクスポート処理が進行中です",
-            )
+            # タイムアウト判定: 30分以上経過したジョブは詰まりとみなして失敗扱いにする
+            timeout_threshold = datetime.utcnow() - timedelta(minutes=30)
+            if latest_export.created_at > timeout_threshold:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="エクスポート処理が進行中です",
+                )
+            # 詰まったジョブを failed に更新して新規エクスポートを許可する
+            latest_export.status = ExportJobStatus.failed
+            latest_export.error_message = "タイムアウト: エクスポート処理が応答しなくなりました"
+            db.commit()
 
         export_job = ExportJob(session_id=session.id, status=ExportJobStatus.pending)
         db.add(export_job)
