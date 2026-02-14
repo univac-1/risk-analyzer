@@ -22,6 +22,8 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/app:/app/app
+      - ./backend/tests:/app/tests
+      - ./backend/alembic:/app/alembic
       - ${GOOGLE_ADC_PATH:-${APPDATA:-${HOME}/.config}/gcloud}:/root/.config/gcloud:ro
     env_file:
       - .env.local

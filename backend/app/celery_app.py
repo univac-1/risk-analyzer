@@ -8,7 +8,7 @@ celery_app = Celery(
     "video_risk_analyzer",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["app.tasks.analyze"],
+    include=["app.tasks.analyze", "app.tasks.export"],
 )
 
 celery_app.conf.update(
@@ -23,6 +23,7 @@ celery_app.conf.update(
     task_default_queue="default",
     task_routes={
         "app.tasks.analyze.*": {"queue": "analysis"},
+        "app.tasks.export.*": {"queue": "export"},
     },
     task_annotations={
         "app.tasks.analyze.analyze_video": {

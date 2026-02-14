@@ -227,6 +227,12 @@ export function ResultsComponent() {
           ジョブ一覧へ
         </button>
         <button
+          className="secondary-button"
+          onClick={() => navigate(`/jobs/${job.id}/editor`)}
+        >
+          タイムライン編集へ
+        </button>
+        <button
           className="primary-button"
           onClick={() => navigate('/')}
         >

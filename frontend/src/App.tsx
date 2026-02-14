@@ -3,6 +3,7 @@ import { UploadComponent } from './components/UploadComponent'
 import { ProgressComponent } from './components/ProgressComponent'
 import { ResultsComponent } from './components/ResultsComponent'
 import { JobListComponent } from './components/JobListComponent'
+import { EditorPage } from './components/editor/EditorPage'
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/jobs" element={<JobListComponent />} />
           <Route path="/jobs/:id/progress" element={<ProgressComponent />} />
           <Route path="/jobs/:id/results" element={<ResultsComponent />} />
+          <Route path="/jobs/:id/editor" element={<EditorPage />} />
         </Routes>
       </main>
     </div>

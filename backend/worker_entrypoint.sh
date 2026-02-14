@@ -49,4 +49,4 @@ else
 fi
 
 echo "Starting Celery worker..."
-exec celery -A app.celery_app worker --loglevel=info --queues=default,analysis
+exec celery -A app.celery_app worker --loglevel=info --queues=default,analysis,export

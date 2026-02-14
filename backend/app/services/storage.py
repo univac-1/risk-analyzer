@@ -102,6 +102,31 @@ class S3StorageService(BaseStorageService):
         )
         return file_path
 
+    def upload_file_to_path(
+        self,
+        file: BinaryIO,
+        file_path: str,
+        content_type: str = "video/mp4",
+    ) -> str:
+        """
+        指定したパスにファイルをアップロード
+
+        Args:
+            file: ファイルオブジェクト
+            file_path: 保存先のファイルパス（キー）
+            content_type: MIMEタイプ
+
+        Returns:
+            保存先のファイルパス（キー）
+        """
+        self.s3_client.upload_fileobj(
+            file,
+            self.bucket,
+            file_path,
+            ExtraArgs={"ContentType": content_type},
+        )
+        return file_path
+
     def download_file(self, file_path: str, destination: str) -> None:
         self.s3_client.download_file(self.bucket, file_path, destination)
 
@@ -162,6 +187,16 @@ class GCSStorageService(BaseStorageService):
         blob.upload_from_file(file, content_type=content_type)
         return file_path
 
+    def upload_file_to_path(
+        self,
+        file: BinaryIO,
+        file_path: str,
+        content_type: str = "video/mp4",
+    ) -> str:
+        blob = self.bucket.blob(file_path)
+        blob.upload_from_file(file, content_type=content_type)
+        return file_path
+
     def download_file(self, file_path: str, destination: str) -> None:
         blob = self.bucket.blob(file_path)
         blob.download_to_filename(destination)
@@ -173,38 +208,36 @@ class GCSStorageService(BaseStorageService):
     def generate_presigned_url(self, file_path: str, expiration: int = 3600) -> str:
         from datetime import timedelta
         import google.auth
-        from google.auth import impersonated_credentials
-        from google.auth.transport import requests
+        from google.auth.transport import requests as google_requests
 
         blob = self.bucket.blob(file_path)
 
-        # Get service account email from settings or current credentials
-        service_account_email = settings.gcs_service_account_email
+        # Get credentials and refresh to ensure a valid access token
+        credentials, _ = google.auth.default()
+        auth_request = google_requests.Request()
+        credentials.refresh(auth_request)
 
+        # Resolve service account email
+        service_account_email = settings.gcs_service_account_email
         if not service_account_email:
-            # Try to get from current credentials
-            credentials, _ = google.auth.default()
             if hasattr(credentials, 'service_account_email'):
                 service_account_email = credentials.service_account_email
             elif hasattr(credentials, 'signer_email'):
                 service_account_email = credentials.signer_email
 
-        # Generate signed URL using IAM (no private key needed)
-        if service_account_email:
-            # Use IAM signBlob API by passing service_account_email
-            return blob.generate_signed_url(
-                version="v4",
-                expiration=timedelta(seconds=expiration),
-                method="GET",
-                service_account_email=service_account_email,
+        if not service_account_email:
+            raise ValueError(
+                "gcs_service_account_email が設定されていないため署名付きURLを生成できません。"
             )
-        else:
-            # Fallback to default (will fail on Cloud Run without private key)
-            return blob.generate_signed_url(
-                version="v4",
-                expiration=timedelta(seconds=expiration),
-                method="GET",
-            )
+
+        # Cloud Run上では access_token を渡すことでIAM signBlob APIを使って署名する
+        return blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(seconds=expiration),
+            method="GET",
+            service_account_email=service_account_email,
+            access_token=credentials.token,
+        )
 
     def delete_file(self, file_path: str) -> None:
         blob = self.bucket.blob(file_path)

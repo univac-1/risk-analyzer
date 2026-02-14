@@ -1,0 +1,68 @@
+.video-controls {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #0f172a;
+  color: #f8fafc;
+  border-radius: 12px;
+}
+
+.video-controls__buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.video-controls__button {
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.6);
+  color: inherit;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.video-controls__button:hover {
+  border-color: rgba(148, 163, 184, 0.9);
+  background: rgba(30, 41, 59, 0.85);
+}
+
+.video-controls__button--primary {
+  background: #2563eb;
+  border-color: transparent;
+}
+
+.video-controls__button--primary:hover {
+  background: #1d4ed8;
+}
+
+.video-controls__timeline {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.video-controls__time {
+  font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
+  font-size: 0.8rem;
+  color: rgba(248, 250, 252, 0.8);
+}
+
+.video-controls__range {
+  width: 100%;
+  accent-color: #38bdf8;
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .video-controls {
+    padding: 0.6rem;
+  }
+
+  .video-controls__buttons {
+    flex-wrap: wrap;
+  }
+}

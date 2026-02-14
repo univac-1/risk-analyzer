@@ -77,6 +77,7 @@ class AnalysisJob(Base):
 
     video = relationship("Video", back_populates="job")
     risk_items = relationship("RiskItem", back_populates="job", cascade="all, delete-orphan")
+    edit_session = relationship("EditSession", back_populates="job", uselist=False)
 
 
 class RiskItem(Base):
