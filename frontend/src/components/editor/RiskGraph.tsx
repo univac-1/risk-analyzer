@@ -14,10 +14,13 @@ interface RiskGraphProps {
 export function RiskGraph({ riskData, currentTime, duration }: RiskGraphProps) {
   const maxRisk = 100
   const height = 120
+  const orderedData = [...riskData].sort(
+    (a, b) => a.timestamp - b.timestamp
+  )
   const effectiveDuration =
-    duration ?? riskData[riskData.length - 1]?.timestamp ?? 1
+    duration ?? orderedData[orderedData.length - 1]?.timestamp ?? 1
 
-  const points = riskData.map((data, index) => {
+  const points = orderedData.map((data, index) => {
     const x = (data.timestamp / effectiveDuration) * 100
     const y = height - (data.riskLevel / maxRisk) * height
     return `${index === 0 ? 'M' : 'L'} ${x} ${y}`
@@ -26,12 +29,12 @@ export function RiskGraph({ riskData, currentTime, duration }: RiskGraphProps) {
   const pathData = points.join(' ')
   const areaPathData = `${pathData} L 100 ${height} L 0 ${height} Z`
 
-  const currentRisk = riskData.reduce((prev, curr) => {
+  const currentRisk = orderedData.reduce((prev, curr) => {
     return Math.abs(curr.timestamp - currentTime) <
       Math.abs(prev.timestamp - currentTime)
       ? curr
       : prev
-  }, riskData[0] ?? { timestamp: 0, riskLevel: 0 }).riskLevel
+  }, orderedData[0] ?? { timestamp: 0, riskLevel: 0 }).riskLevel
 
   const currentX = (currentTime / effectiveDuration) * 100
 
@@ -65,11 +68,11 @@ export function RiskGraph({ riskData, currentTime, duration }: RiskGraphProps) {
           </linearGradient>
         </defs>
 
-        {riskData.map((data, index) => {
-          if (data.riskLevel < 70 || index === riskData.length - 1) {
+        {orderedData.map((data, index) => {
+          if (data.riskLevel < 70 || index === orderedData.length - 1) {
             return null
           }
-          const nextData = riskData[index + 1]
+          const nextData = orderedData[index + 1]
           const x1 = (data.timestamp / effectiveDuration) * 100
           const x2 = (nextData.timestamp / effectiveDuration) * 100
           return (
