@@ -39,6 +39,7 @@ def test_start_export_conflict(client, mock_db_session):
 
     export_job = MagicMock()
     export_job.status = ExportJobStatus.processing
+    export_job.created_at = datetime.utcnow()
 
     mock_db_session.query.side_effect = [
         make_query_mock(job),
