@@ -33,7 +33,6 @@ export function EditorPage() {
   )
   const [exportStatus, setExportStatus] = useState<string | null>(null)
   const [exportProgress, setExportProgress] = useState(0)
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
@@ -56,7 +55,6 @@ export function EditorPage() {
     }
     setExportStatus(null)
     setExportProgress(0)
-    setDownloadUrl(null)
     setExportError(null)
 
     const fetchData = async () => {
@@ -89,10 +87,6 @@ export function EditorPage() {
         if (status.status === 'failed') {
           setExportError(status.error_message ?? 'エクスポートに失敗しました')
         }
-        if (status.status === 'completed') {
-          const download = await editorApi.getExportDownload(id)
-          setDownloadUrl(download.url)
-        }
       } catch (err) {
         if (err instanceof Error && err.message.includes('404')) {
           return
@@ -116,10 +110,6 @@ export function EditorPage() {
         setExportProgress(status.progress)
         if (status.status === 'failed') {
           setExportError(status.error_message ?? 'エクスポートに失敗しました')
-        }
-        if (status.status === 'completed') {
-          const download = await editorApi.getExportDownload(id)
-          setDownloadUrl(download.url)
         }
       } catch {
         setExportError('エクスポート状況の取得に失敗しました')
@@ -238,7 +228,6 @@ export function EditorPage() {
       return
     }
     setExportError(null)
-    setDownloadUrl(null)
     try {
       const response = await editorApi.startExport(id)
       setExportStatus(response.status)
