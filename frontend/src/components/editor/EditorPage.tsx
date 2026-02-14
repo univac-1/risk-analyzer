@@ -129,6 +129,18 @@ export function EditorPage() {
     return () => window.clearInterval(interval)
   }, [id, exportStatus])
 
+  const handleDownload = async () => {
+    if (!downloadUrl) return
+    const response = await fetch(downloadUrl)
+    const blob = await response.blob()
+    const objectUrl = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = objectUrl
+    anchor.download = 'edited_video.mp4'
+    anchor.click()
+    URL.revokeObjectURL(objectUrl)
+  }
+
   const suggestions = useMemo<SuggestionItem[]>(() => {
     const risks = result?.assessment.risks ?? []
     return risks
@@ -399,9 +411,13 @@ export function EditorPage() {
               </div>
               <div className="editor-export__actions">
                 {downloadUrl && (
-                  <a className="primary-button" href={downloadUrl}>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={handleDownload}
+                  >
                     ダウンロード
-                  </a>
+                  </button>
                 )}
                 {exportStatus === 'completed' && (
                   <button

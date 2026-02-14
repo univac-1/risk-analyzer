@@ -244,12 +244,9 @@ describe('EditorPage 統合テスト (Task 13.2)', () => {
 
       renderEditor()
 
-      const downloadLink = await screen.findByText('ダウンロード')
-      expect(downloadLink).toBeInTheDocument()
-      expect(downloadLink.closest('a')).toHaveAttribute(
-        'href',
-        'https://example.com/edited.mp4'
-      )
+      const downloadButton = await screen.findByText('ダウンロード')
+      expect(downloadButton).toBeInTheDocument()
+      expect(downloadButton.tagName).toBe('BUTTON')
 
       const backButton = await screen.findByText('結果に戻る')
       expect(backButton).toBeInTheDocument()
