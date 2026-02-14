@@ -99,6 +99,9 @@ export function Timeline({
                 left: `${(suggestion.startTime / safeDuration) * 100}%`,
                 width: `${((suggestion.endTime - suggestion.startTime) / safeDuration) * 100}%`,
               }}
+              onMouseDown={(event) => {
+                event.stopPropagation()
+              }}
               onClick={(event) => {
                 event.stopPropagation()
                 onSelectSuggestion(isSelected ? null : suggestion.id)
