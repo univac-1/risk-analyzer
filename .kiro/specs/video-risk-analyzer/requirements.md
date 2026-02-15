@@ -97,3 +97,14 @@ google-cloud-japan-ai-hackathon-vol4.mdに記載されている条件を満た�
 4. The Video Risk Analyzer shall 各ジョブのステータス（待機中・処理中・完了・エラー）を表示する
 5. When ユーザがジョブを選択する, the Video Risk Analyzer shall 該当ジョブの詳細（進捗または結果）を表示する
 6. If 解析処理が失敗する, then the Video Risk Analyzer shall ジョブを失敗ステータスに更新し、エラー詳細を記録する
+
+### Requirement 9: 動画削除
+
+**Objective:** As a 広報担当者, I want 投稿した動画（解析ジョブ）を削除したい, so that 不要になった解析結果を一覧から除外できる
+
+#### Acceptance Criteria
+1. When ユーザがジョブ一覧で削除操作を行う, the Video Risk Analyzer shall 該当ジョブを論理削除する（deleted_atタイムスタンプを記録）
+2. When ユーザが解析結果画面で削除操作を行う, the Video Risk Analyzer shall 該当ジョブを論理削除し、ジョブ一覧に遷移する
+3. The Video Risk Analyzer shall 削除前に確認ダイアログを表示し、ユーザの意思を確認する
+4. When ジョブが論理削除される, the Video Risk Analyzer shall ジョブ一覧・詳細取得・結果取得のAPIレスポンスから該当ジョブを除外する
+5. The Video Risk Analyzer shall 論理削除されたジョブのデータ（動画ファイル・解析結果）をデータベース上に保持する

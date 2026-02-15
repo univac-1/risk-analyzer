@@ -54,6 +54,18 @@ export function JobListComponent() {
     fetchJobs()
   }, [])
 
+  const handleDelete = async (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation()
+    if (!window.confirm('このジョブを削除しますか？')) return
+
+    try {
+      await api.delete(`/api/jobs/${jobId}`)
+      setJobs((prev) => prev.filter((job) => job.id !== jobId))
+    } catch (err) {
+      setError('ジョブの削除に失敗しました')
+    }
+  }
+
   const handleJobClick = (job: AnalysisJobSummary) => {
     if (job.status === 'completed') {
       navigate(`/jobs/${job.id}/results`)

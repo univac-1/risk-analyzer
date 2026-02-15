@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from datetime import datetime, timezone
 from typing import AsyncGenerator
 from urllib.parse import quote
 
@@ -47,6 +48,7 @@ async def list_jobs():
         jobs = (
             db.query(AnalysisJob)
             .join(Video)
+            .filter(AnalysisJob.deleted_at.is_(None))
             .order_by(AnalysisJob.created_at.desc())
             .all()
         )
@@ -77,7 +79,7 @@ async def get_job(job_id: str):
         job = (
             db.query(AnalysisJob)
             .join(Video)
-            .filter(AnalysisJob.id == job_id)
+            .filter(AnalysisJob.id == job_id, AnalysisJob.deleted_at.is_(None))
             .first()
         )
 
@@ -114,7 +116,7 @@ async def get_job_progress(job_id: str):
     """
     db = SessionLocal()
     try:
-        job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
+        job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id, AnalysisJob.deleted_at.is_(None)).first()
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -168,7 +170,7 @@ async def get_job_results(job_id: str):
         job = (
             db.query(AnalysisJob)
             .join(Video)
-            .filter(AnalysisJob.id == job_id)
+            .filter(AnalysisJob.id == job_id, AnalysisJob.deleted_at.is_(None))
             .first()
         )
 
@@ -259,7 +261,7 @@ async def get_job_events(job_id: str):
     """
     db = SessionLocal()
     try:
-        job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
+        job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id, AnalysisJob.deleted_at.is_(None)).first()
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -307,7 +309,7 @@ async def get_job_video(job_id: str):
         job = (
             db.query(AnalysisJob)
             .join(Video)
-            .filter(AnalysisJob.id == job_id)
+            .filter(AnalysisJob.id == job_id, AnalysisJob.deleted_at.is_(None))
             .first()
         )
 
@@ -378,3 +380,43 @@ async def get_job_video(job_id: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="動画の取得中にエラーが発生しました",
         )
+
+
+@router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_job(job_id: str):
+    """
+    ジョブを論理削除
+
+    - deleted_atタイムスタンプを設定して論理削除
+    - データベース上のデータは保持される
+    """
+    db = SessionLocal()
+    try:
+        job = (
+            db.query(AnalysisJob)
+            .filter(AnalysisJob.id == job_id, AnalysisJob.deleted_at.is_(None))
+            .first()
+        )
+
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="ジョブが見つかりません",
+            )
+
+        job.deleted_at = datetime.now(timezone.utc)
+        db.commit()
+
+        logger.info(f"ジョブを論理削除しました: job_id={job_id}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ジョブの削除中にエラーが発生しました: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="ジョブの削除中にエラーが発生しました",
+        )
+    finally:
+        db.close()

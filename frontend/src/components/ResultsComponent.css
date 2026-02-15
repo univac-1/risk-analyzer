@@ -213,11 +213,11 @@
   color: #495057;
 }
 
-.risk-item-body > div {
+.risk-item-body>div {
   margin-bottom: 0.5rem;
 }
 
-.risk-item-body > div:last-child {
+.risk-item-body>div:last-child {
   margin-bottom: 0;
 }
 
@@ -272,6 +272,17 @@
 
 .secondary-button:hover {
   background: rgba(37, 99, 235, 0.08);
+}
+
+.danger-button {
+  background-color: white;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+
+.danger-button:hover {
+  background-color: #dc3545;
+  color: white;
 }
 
 .loading-state,
