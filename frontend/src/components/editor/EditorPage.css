@@ -18,6 +18,38 @@
   backdrop-filter: blur(10px);
 }
 
+.editor-header__left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.editor-header__back-link,
+.editor-header__text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.75rem;
+  border: none;
+  border-radius: 999px;
+  background: #334155;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.editor-header__back-link:hover,
+.editor-header__text-link:hover {
+  background: #475569;
+}
+
+.editor-header__divider {
+  width: 1px;
+  height: 1.2rem;
+  background: rgba(148, 163, 184, 0.3);
+}
+
 .editor-header h1 {
   margin: 0;
   font-size: 1.2rem;
@@ -39,6 +71,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  white-space: nowrap;
 }
 
 .editor-header__icon {

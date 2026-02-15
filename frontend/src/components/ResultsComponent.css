@@ -155,18 +155,19 @@
 }
 
 .timestamp-button {
-  padding: 0.5rem 1rem;
-  background-color: #007bff;
-  color: white;
+  padding: 0.4rem 0.9rem;
+  background: #2563eb;
+  color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 999px;
   cursor: pointer;
   font-family: monospace;
-  font-size: 1rem;
+  font-size: 0.9rem;
+  transition: background 0.2s ease;
 }
 
 .timestamp-button:hover {
-  background-color: #0056b3;
+  background: #1d4ed8;
 }
 
 .risk-badges {
@@ -243,33 +244,34 @@
   flex-wrap: wrap;
 }
 
-.primary-button,
-.secondary-button {
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
+.primary-button {
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
   font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.primary-button {
-  background-color: #007bff;
-  color: white;
+  transition: background 0.2s ease;
+  background: #2563eb;
+  color: #fff;
   border: none;
 }
 
 .primary-button:hover {
-  background-color: #0056b3;
+  background: #1d4ed8;
 }
 
 .secondary-button {
-  background-color: white;
-  color: #007bff;
-  border: 1px solid #007bff;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  background: transparent;
+  color: #2563eb;
+  border: 1px solid #2563eb;
 }
 
 .secondary-button:hover {
-  background-color: #f0f7ff;
+  background: rgba(37, 99, 235, 0.08);
 }
 
 .loading-state,
@@ -284,10 +286,15 @@
 
 .error-state button {
   margin-top: 1rem;
-  padding: 0.75rem 1.5rem;
-  background-color: #007bff;
-  color: white;
+  padding: 0.5rem 1.2rem;
+  background: #2563eb;
+  color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 999px;
   cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.error-state button:hover {
+  background: #1d4ed8;
 }
