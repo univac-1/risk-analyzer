@@ -11,6 +11,7 @@ export function UploadComponent() {
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isLoadingSample, setIsLoadingSample] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const validateFile = (file: File): string | null => {
@@ -58,6 +59,22 @@ export function UploadComponent() {
     const selectedFile = e.target.files?.[0]
     if (selectedFile) {
       handleFileSelect(selectedFile)
+    }
+  }
+
+  const handleUseSample = async () => {
+    setIsLoadingSample(true)
+    setError(null)
+    try {
+      const response = await fetch('/sample-video.mp4')
+      if (!response.ok) throw new Error('サンプル動画の読み込みに失敗しました')
+      const blob = await response.blob()
+      const sampleFile = new File([blob], 'sample-video.mp4', { type: 'video/mp4' })
+      handleFileSelect(sampleFile)
+    } catch {
+      setError('サンプル動画の読み込みに失敗しました')
+    } finally {
+      setIsLoadingSample(false)
     }
   }
 
@@ -120,6 +137,18 @@ export function UploadComponent() {
               </div>
             )}
           </label>
+        </div>
+
+        <div className="sample-button-wrapper">
+          <button
+            type="button"
+            className="sample-button"
+            onClick={handleUseSample}
+            disabled={isLoadingSample || isUploading}
+          >
+            {isLoadingSample ? '読み込み中...' : 'サンプル動画を使う'}
+          </button>
+          <span className="sample-button-hint">動画をお持ちでない方はこちら</span>
         </div>
 
         {error && <div className="error-message">{error}</div>}
