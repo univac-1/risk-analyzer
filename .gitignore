@@ -27,6 +27,10 @@ wheels/
 venv/
 ENV/
 
+# Allow frontend shared utilities.
+!frontend/src/lib/
+!frontend/src/lib/**
+
 # Node
 node_modules/
 npm-debug.log*
