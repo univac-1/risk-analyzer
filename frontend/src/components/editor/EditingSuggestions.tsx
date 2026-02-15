@@ -65,6 +65,14 @@ export function EditingSuggestions({
     return Number.isNaN(next) ? null : next
   }
 
+  const clampNumber = (value: number, min: number, max?: number) => {
+    const clampedMin = Math.max(value, min)
+    if (max === undefined) {
+      return clampedMin
+    }
+    return Math.min(clampedMin, max)
+  }
+
   const handleActionChange = (id: string, value: EditActionType) => {
     setActionById((prev) => ({ ...prev, [id]: value }))
     if (value === 'mosaic' && !mosaicById[id]) {
@@ -197,7 +205,7 @@ export function EditingSuggestions({
                             ...prev,
                             [suggestion.id]: {
                               ...mosaicOptions,
-                              x: nextValue,
+                              x: clampNumber(nextValue, 0),
                             },
                           }))
                         }}
@@ -218,7 +226,7 @@ export function EditingSuggestions({
                             ...prev,
                             [suggestion.id]: {
                               ...mosaicOptions,
-                              y: nextValue,
+                              y: clampNumber(nextValue, 0),
                             },
                           }))
                         }}
@@ -241,7 +249,7 @@ export function EditingSuggestions({
                             ...prev,
                             [suggestion.id]: {
                               ...mosaicOptions,
-                              width: nextValue,
+                              width: clampNumber(nextValue, 1),
                             },
                           }))
                         }}
@@ -262,7 +270,7 @@ export function EditingSuggestions({
                             ...prev,
                             [suggestion.id]: {
                               ...mosaicOptions,
-                              height: nextValue,
+                              height: clampNumber(nextValue, 1),
                             },
                           }))
                         }}
@@ -285,7 +293,7 @@ export function EditingSuggestions({
                           ...prev,
                           [suggestion.id]: {
                             ...mosaicOptions,
-                            blur_strength: nextValue,
+                            blur_strength: clampNumber(nextValue, 1, 100),
                           },
                         }))
                       }}
@@ -328,7 +336,7 @@ export function EditingSuggestions({
                             ...prev,
                             [suggestion.id]: {
                               ...telopOptions,
-                              x: nextValue,
+                              x: clampNumber(nextValue, 0),
                             },
                           }))
                         }}
@@ -349,7 +357,7 @@ export function EditingSuggestions({
                             ...prev,
                             [suggestion.id]: {
                               ...telopOptions,
-                              y: nextValue,
+                              y: clampNumber(nextValue, 0),
                             },
                           }))
                         }}
@@ -373,7 +381,7 @@ export function EditingSuggestions({
                             ...prev,
                             [suggestion.id]: {
                               ...telopOptions,
-                              font_size: nextValue,
+                              font_size: clampNumber(nextValue, 10, 200),
                             },
                           }))
                         }}
