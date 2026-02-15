@@ -84,7 +84,7 @@ google-cloud-japan-ai-hackathon-vol4.mdに記載されている条件を満た�
 1. While 解析処理が実行中である, the Video Risk Analyzer shall 進捗状況をリアルタイムで表示する
 2. The Video Risk Analyzer shall 各解析フェーズ（音声・Gemini統合解析）の進捗を個別に表示する
 3. The Video Risk Analyzer shall 推定残り時間を表示する
-4. If 解析処理がエラーで中断する, then the Video Risk Analyzer shall エラー内容を表示し、再試行オプションを提供する
+4. If 解析処理がエラーで中断する, then the Video Risk Analyzer shall エラー内容を表示し、ジョブ一覧への遷移および新規解析のオプションを提供する
 
 ### Requirement 8: 非同期タスク処理
 
