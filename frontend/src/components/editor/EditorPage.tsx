@@ -59,12 +59,17 @@ export function EditorPage() {
 
     const fetchData = async () => {
       try {
-        const [resultData, videoData] = await Promise.all([
-          api.get<AnalysisResult>(`/api/jobs/${id}/results`),
-          editorApi.getVideoUrl(id),
-        ])
+        const resultData = await api.get<AnalysisResult>(`/api/jobs/${id}/results`)
         setResult(resultData)
-        setVideoUrl(videoData.url)
+        if (resultData.video_url) {
+          const absoluteUrl = resultData.video_url.startsWith('http')
+            ? resultData.video_url
+            : `${API_BASE_URL}${resultData.video_url}`
+          setVideoUrl(absoluteUrl)
+        } else {
+          const videoData = await editorApi.getVideoUrl(id)
+          setVideoUrl(videoData.url)
+        }
         setPageError(null)
       } catch {
         setPageError('解析結果の取得に失敗しました')
