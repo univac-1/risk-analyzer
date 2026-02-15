@@ -239,7 +239,7 @@ export function EditorPage() {
       setExportProgress(0)
     } catch (err) {
       setExportError(
-        err instanceof Error ? err.message : 'エクスポート開始に失敗しました'
+        extractApiErrorMessage(err, 'エクスポート開始に失敗しました')
       )
     }
   }
@@ -546,4 +546,15 @@ function normalizeExportProgress(status: string, progress: number) {
   }
   const clamped = Math.min(Math.max(progress, 0), 100)
   return clamped
+}
+
+function extractApiErrorMessage(error: unknown, fallback: string) {
+  if (!(error instanceof Error)) {
+    return fallback
+  }
+  const parts = error.message.split(' - ')
+  if (parts.length > 1) {
+    return parts.slice(1).join(' - ')
+  }
+  return error.message || fallback
 }
