@@ -308,6 +308,7 @@ export function EditingSuggestions({
                     テキスト
                     <input
                       type="text"
+                      maxLength={500}
                       value={telopOptions.text}
                       onChange={(event) =>
                         setTelopById((prev) => ({
