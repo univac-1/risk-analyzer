@@ -77,9 +77,9 @@ function RiskItemCard({
         <div className="risk-rationale">
           <strong>リスク根拠:</strong> {item.rationale}
         </div>
-        <div className="risk-score">
-          <strong>リスクスコア:</strong> {item.score.toFixed(0)}点
-        </div>
+      <div className="risk-score">
+        <strong>リスクスコア:</strong> {formatRiskScore(item.score)}点
+      </div>
       </div>
     </div>
   )
@@ -167,7 +167,7 @@ export function ResultsComponent() {
         <div className="overall-score">
           <span className="score-label">総合リスクスコア</span>
           <span className={`score-value ${assessment.risk_level}`}>
-            {assessment.overall_score.toFixed(0)}
+            {formatRiskScore(assessment.overall_score)}
           </span>
         </div>
         <div className="overall-level">
@@ -241,4 +241,13 @@ export function ResultsComponent() {
       </div>
     </div>
   )
+}
+
+function formatRiskScore(score: number) {
+  if (!Number.isFinite(score)) {
+    return '0'
+  }
+  const normalized = score <= 1 ? score * 100 : score
+  const clamped = Math.min(Math.max(normalized, 0), 100)
+  return Math.round(clamped).toString()
 }
