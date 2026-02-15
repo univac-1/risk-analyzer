@@ -524,8 +524,10 @@ export function EditorPage() {
 }
 
 function normalizeRiskScore(score: number) {
-  if (score <= 1) {
-    return Math.round(score * 100)
+  if (!Number.isFinite(score)) {
+    return 0
   }
-  return Math.round(score)
+  const normalized = score <= 1 ? score * 100 : score
+  const clamped = Math.min(Math.max(normalized, 0), 100)
+  return Math.round(clamped)
 }
