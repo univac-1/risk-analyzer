@@ -87,7 +87,10 @@ export function ProgressComponent() {
         <div className="error-state">
           <h2>エラーが発生しました</h2>
           <p>{error}</p>
-          <button onClick={() => navigate("/")}>トップに戻る</button>
+          <div className="error-state__actions">
+            <button className="primary-button" onClick={() => navigate("/jobs")}>ジョブ一覧へ</button>
+            <button className="ghost-button" onClick={() => navigate("/")}>新規解析</button>
+          </div>
         </div>
       </div>
     );

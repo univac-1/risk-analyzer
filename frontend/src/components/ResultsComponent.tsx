@@ -228,15 +228,15 @@ export function ResultsComponent() {
         </button>
         <button
           className="secondary-button"
-          onClick={() => navigate(`/jobs/${job.id}/editor`)}
-        >
-          タイムライン編集へ
-        </button>
-        <button
-          className="primary-button"
           onClick={() => navigate('/')}
         >
           新規解析
+        </button>
+        <button
+          className="primary-button"
+          onClick={() => navigate(`/jobs/${job.id}/editor`)}
+        >
+          タイムライン編集へ
         </button>
       </div>
     </div>
