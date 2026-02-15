@@ -420,7 +420,7 @@ export function EditorPage() {
                 {exportStatus === 'completed' && (
                   <button
                     type="button"
-                    className="ghost-button"
+                    className="secondary-button"
                     onClick={() => navigate(`/jobs/${id}/results`)}
                   >
                     結果に戻る
