@@ -250,6 +250,12 @@ export function ResultsComponent() {
         >
           タイムライン編集へ
         </button>
+        <button
+          className="secondary-button danger-button"
+          onClick={handleDelete}
+        >
+          削除
+        </button>
       </div>
     </div>
   )

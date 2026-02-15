@@ -37,6 +37,16 @@ export const api = {
       body: data ? JSON.stringify(data) : undefined,
     }),
 
+  delete: async (endpoint: string): Promise<void> => {
+    const url = `${API_BASE_URL}${endpoint}`
+    const response = await fetch(url, {
+      method: 'DELETE',
+    })
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+    }
+  },
+
   upload: async <T>(endpoint: string, formData: FormData): Promise<T> => {
     const url = `${API_BASE_URL}${endpoint}`
     const response = await fetch(url, {

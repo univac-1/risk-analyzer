@@ -137,6 +137,13 @@ export function JobListComponent() {
                     編集
                   </button>
                 )}
+                <button
+                  className="delete-button"
+                  aria-label="削除"
+                  onClick={(e) => handleDelete(e, job.id)}
+                >
+                  削除
+                </button>
                 <StatusBadge status={job.status} />
               </div>
             </div>
