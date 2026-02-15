@@ -15,6 +15,7 @@ import { api, API_BASE_URL } from '../../services/api'
 import { editorApi } from '../../services/editorApi'
 import type { AnalysisResult, EditActionInput } from '../../types'
 import { useEditSession } from '../../hooks/useEditSession'
+import { useTheme } from '../../hooks/useTheme'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { VideoPreview } from './VideoPreview'
@@ -47,6 +48,7 @@ export function EditorPage() {
   const [exportError, setExportError] = useState<string | null>(null)
   const [pageError, setPageError] = useState<string | null>(null)
   const [isSuggestionsExpanded, setIsSuggestionsExpanded] = useState(true)
+  const { theme, toggleTheme } = useTheme()
   const videoRef = useRef<HTMLVideoElement>(null)
 
   const {
@@ -328,6 +330,14 @@ export function EditorPage() {
           >
             <Undo2 className="h-4 w-4" />
             Undo
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-transparent"
+            onClick={toggleTheme}
+          >
+            {theme === 'dark' ? 'Light' : 'Dark'}
           </Button>
           <Button size="sm" onClick={handleExport}>
             <Download className="h-4 w-4" />
