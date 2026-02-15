@@ -127,7 +127,7 @@ export function ResultsComponent() {
 
   const sortedRisks = result?.assessment.risks.slice().sort((a, b) => {
     if (sortBy === 'score') {
-      return b.score - a.score
+      return normalizeRiskScoreValue(b.score) - normalizeRiskScoreValue(a.score)
     }
     return a.timestamp - b.timestamp
   })
@@ -244,10 +244,13 @@ export function ResultsComponent() {
 }
 
 function formatRiskScore(score: number) {
+  return Math.round(normalizeRiskScoreValue(score)).toString()
+}
+
+function normalizeRiskScoreValue(score: number) {
   if (!Number.isFinite(score)) {
-    return '0'
+    return 0
   }
   const normalized = score <= 1 ? score * 100 : score
-  const clamped = Math.min(Math.max(normalized, 0), 100)
-  return Math.round(clamped).toString()
+  return Math.min(Math.max(normalized, 0), 100)
 }
