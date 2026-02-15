@@ -88,7 +88,7 @@ export function EditorPage() {
       try {
         const status = await editorApi.getExportStatus(id)
         setExportStatus(status.status)
-        setExportProgress(status.progress)
+        setExportProgress(normalizeExportProgress(status.status, status.progress))
         if (status.status === 'failed') {
           setExportError(status.error_message ?? 'エクスポートに失敗しました')
         }
@@ -112,7 +112,7 @@ export function EditorPage() {
       try {
         const status = await editorApi.getExportStatus(id)
         setExportStatus(status.status)
-        setExportProgress(status.progress)
+        setExportProgress(normalizeExportProgress(status.status, status.progress))
         if (status.status === 'failed') {
           setExportError(status.error_message ?? 'エクスポートに失敗しました')
         }
@@ -535,4 +535,15 @@ function normalizeRiskScore(score: number) {
   const normalized = score <= 1 ? score * 100 : score
   const clamped = Math.min(Math.max(normalized, 0), 100)
   return Math.round(clamped)
+}
+
+function normalizeExportProgress(status: string, progress: number) {
+  if (!Number.isFinite(progress)) {
+    return status === 'completed' ? 100 : 0
+  }
+  if (status === 'completed') {
+    return 100
+  }
+  const clamped = Math.min(Math.max(progress, 0), 100)
+  return clamped
 }
