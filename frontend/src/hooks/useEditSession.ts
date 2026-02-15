@@ -96,9 +96,10 @@ export const useEditSession = (jobId: string | null) => {
   const addAction = useCallback(
     async (action: EditActionInput) => {
       const snapshot = toInputs(actions)
-      pushHistory(snapshot)
       const next = [...snapshot, action]
-      return saveActions(next)
+      const response = await saveActions(next)
+      pushHistory(snapshot)
+      return response
     },
     [actions, pushHistory, saveActions]
   )
@@ -113,10 +114,11 @@ export const useEditSession = (jobId: string | null) => {
       if (index === -1) {
         throw new Error('Action not found')
       }
-      pushHistory(snapshot)
       const next = [...snapshot]
       next[index] = action
-      return saveActions(next)
+      const response = await saveActions(next)
+      pushHistory(snapshot)
+      return response
     },
     [actions, pushHistory, saveActions]
   )
@@ -128,8 +130,9 @@ export const useEditSession = (jobId: string | null) => {
       if (next.length === snapshot.length) {
         return null
       }
+      const response = await saveActions(next)
       pushHistory(snapshot)
-      return saveActions(next)
+      return response
     },
     [actions, pushHistory, saveActions]
   )
@@ -137,8 +140,9 @@ export const useEditSession = (jobId: string | null) => {
   const replaceActions = useCallback(
     async (nextActions: EditActionInput[]) => {
       const snapshot = toInputs(actions)
+      const response = await saveActions(nextActions)
       pushHistory(snapshot)
-      return saveActions(nextActions)
+      return response
     },
     [actions, pushHistory, saveActions]
   )
@@ -149,7 +153,13 @@ export const useEditSession = (jobId: string | null) => {
     if (!previous) {
       return null
     }
-    return saveActions(previous)
+    try {
+      return await saveActions(previous)
+    } catch (err) {
+      historyRef.current.push(previous)
+      setCanUndo(true)
+      throw err
+    }
   }, [saveActions])
 
   return {
