@@ -36,7 +36,7 @@ class GeminiVideoAnalysisService:
         self.settings = get_settings()
         if self.settings.google_cloud_project:
             vertexai.init(project=self.settings.google_cloud_project, location="us-central1")
-        self.model = GenerativeModel("gemini-2.0-flash-001")
+        self.model = GenerativeModel("gemini-3-pro-preview")
         self.storage_service = StorageService()
 
     def analyze_video(self, video_path: str) -> UnifiedVideoAnalysisResult:
