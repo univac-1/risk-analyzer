@@ -1,22 +1,22 @@
-# Timeline Editor Manual Checks
+# タイムラインエディタ 手動確認チェックリスト
 
-This checklist covers the editor workflow after recent fixes.
+最近の修正を反映した、編集フローの確認項目です。
 
-## Preconditions
+## 前提条件
 
-- The job is completed and has risks.
-- The editor page can load video and risks.
+- ジョブが完了しており、リスクが存在する
+- エディタ画面で動画とリスクが読み込める
 
-## Checks
+## 確認項目
 
-1. Open the editor page for a completed job.
-2. In the suggestions list, choose "テロップ".
-3. Leave the text empty and confirm the "適用" button is disabled.
-4. Enter some text and confirm "適用" works.
-5. Enter negative or too-large values in mosaic/telop numeric fields.
-6. Confirm the values clamp to valid ranges and do not break saves.
-7. Click a suggestion range in the timeline and confirm it selects without seeking.
-8. Confirm the risk graph draws left-to-right and high-risk highlights align.
-9. Start export and confirm progress reaches 100% on completion.
-10. While export is pending, click export again and confirm the API message is shown.
-11. Download the exported file and confirm it matches the edits.
+1. 完了済みジョブのエディタ画面を開く。
+2. 提案一覧で「テロップ」を選ぶ。
+3. テキスト未入力のまま「適用」ボタンが無効になること。
+4. テキスト入力後に「適用」できること。
+5. モザイク/テロップの数値入力に負値や過大値を入れる。
+6. 値が有効範囲に丸められ、保存に失敗しないこと。
+7. タイムライン上の提案範囲をクリックしてもシークせず選択のみになること。
+8. リスクグラフが時間順に描画され、高リスクのハイライトがずれないこと。
+9. エクスポート開始後、完了時に進捗が100%になること。
+10. エクスポート中に再度実行し、APIのメッセージが表示されること。
+11. 出力ファイルをダウンロードし、編集内容が反映されていること。
