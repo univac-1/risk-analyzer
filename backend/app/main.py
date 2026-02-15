@@ -7,8 +7,8 @@ from app.api.routes import videos, jobs, editor
 settings = get_settings()
 
 app = FastAPI(
-    title="Video Risk Analyzer API",
-    description="SNS投稿前の動画コンテンツに対する炎上リスクチェック支援ツール",
+    title="Enjo-Guardian API",
+    description="動画の炎上リスクからあなたを守ります",
     version="0.1.0",
 )
 
