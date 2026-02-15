@@ -2,8 +2,9 @@
   display: grid;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  background: #0f172a;
-  color: #f8fafc;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
   border-radius: 12px;
 }
 
@@ -14,8 +15,8 @@
 }
 
 .video-controls__button {
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border);
+  background: var(--background);
   color: inherit;
   padding: 0.35rem 0.9rem;
   border-radius: 999px;
@@ -25,17 +26,18 @@
 }
 
 .video-controls__button:hover {
-  border-color: rgba(148, 163, 184, 0.9);
-  background: rgba(30, 41, 59, 0.85);
+  border-color: var(--ring);
+  background: var(--accent);
 }
 
 .video-controls__button--primary {
-  background: #2563eb;
+  background: var(--primary);
   border-color: transparent;
+  color: var(--primary-foreground);
 }
 
 .video-controls__button--primary:hover {
-  background: #1d4ed8;
+  background: var(--primary);
 }
 
 .video-controls__timeline {
@@ -48,12 +50,12 @@
 .video-controls__time {
   font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
   font-size: 0.8rem;
-  color: rgba(248, 250, 252, 0.8);
+  color: var(--muted-foreground);
 }
 
 .video-controls__range {
   width: 100%;
-  accent-color: #38bdf8;
+  accent-color: var(--primary);
   cursor: pointer;
 }
 

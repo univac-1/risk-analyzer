@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react'
 import type { EditActionType, MosaicOptions, TelopOptions } from '../../types'
-import './EditingSuggestions.css'
+import { Badge } from '../ui/badge'
+import { Button } from '../ui/button'
+import { Card } from '../ui/card'
+import { cn } from '../../lib/utils'
 
 interface SuggestionItem {
   id: string
@@ -83,15 +86,15 @@ export function EditingSuggestions({
   )
 
   return (
-    <div className="editing-suggestions">
-      <div className="editing-suggestions__header">
-        <div>
-          <h2>編集提案</h2>
-          <p>{suggestionCountLabel}</p>
-        </div>
+    <div className="flex h-full flex-col">
+      <div className="hidden border-b border-border px-4 py-3 md:block">
+        <h2 className="text-sm font-semibold">編集提案</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {suggestionCountLabel}
+        </p>
       </div>
 
-      <div className="editing-suggestions__list">
+      <div className="flex-1 space-y-2 overflow-y-auto p-3 md:space-y-3 md:p-4">
         {suggestions.map((suggestion) => {
           const isSelected = selectedSuggestion === suggestion.id
           const action = actionById[suggestion.id] ?? 'cut'
@@ -99,9 +102,12 @@ export function EditingSuggestions({
           const telopOptions = telopById[suggestion.id] ?? DEFAULT_TELOP
 
           return (
-            <div
+            <Card
               key={suggestion.id}
-              className={`editing-suggestions__card${isSelected ? ' is-selected' : ''}`}
+              className={cn(
+                'cursor-pointer gap-3 p-3 transition-all hover:border-primary md:p-4',
+                isSelected && 'border-primary bg-primary/5',
+              )}
               onClick={() =>
                 onSelectSuggestion(isSelected ? null : suggestion.id)
               }
@@ -113,65 +119,82 @@ export function EditingSuggestions({
                 }
               }}
             >
-              <div className="editing-suggestions__card-header">
-                <span className={`risk-badge risk-${getRiskLevel(suggestion.riskLevel)}`}>
+              <div className="flex items-start justify-between text-xs">
+                <Badge
+                  variant={getRiskBadgeVariant(suggestion.riskLevel)}
+                  className="text-[10px]"
+                >
                   リスク {suggestion.riskLevel}%
-                </span>
-                <span className="editing-suggestions__range">
-                  {formatTime(suggestion.startTime)} - {formatTime(suggestion.endTime)}
+                </Badge>
+                <span className="text-muted-foreground">
+                  {formatTime(suggestion.startTime)} -{' '}
+                  {formatTime(suggestion.endTime)}
                 </span>
               </div>
 
-              <p className="editing-suggestions__reason">{suggestion.reason}</p>
+              <p className="text-xs text-foreground/90 md:text-sm">
+                {suggestion.reason}
+              </p>
 
-              <div className="editing-suggestions__actions">
-                <button
-                  type="button"
-                  className="ghost-button"
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-transparent text-xs"
                   onClick={(event) => {
                     event.stopPropagation()
                     onSeekTo(suggestion.startTime)
                   }}
                 >
                   プレビュー
-                </button>
-                <button
-                  type="button"
-                  className="primary-button"
+                </Button>
+                <Button
+                  size="sm"
+                  className="text-xs"
                   onClick={(event) => {
                     event.stopPropagation()
                     handleApply(suggestion.id)
                   }}
                 >
                   適用
-                </button>
+                </Button>
               </div>
 
-              <div className="editing-suggestions__select">
+              <div className="flex flex-wrap gap-2">
                 {ACTIONS.map((item) => (
-                  <button
+                  <Button
                     key={item.value}
                     type="button"
-                    className={`chip${action === item.value ? ' chip--active' : ''}`}
+                    size="sm"
+                    variant="outline"
+                    className={cn(
+                      'bg-transparent text-xs',
+                      action === item.value &&
+                        'border-primary text-primary hover:bg-primary/10',
+                    )}
                     onClick={(event) => {
                       event.stopPropagation()
                       handleActionChange(suggestion.id, item.value)
                     }}
                   >
                     {item.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
               {action === 'mosaic' && (
-                <div className="editing-suggestions__options" onClick={(e) => e.stopPropagation()}>
-                  <div className="field-row">
-                    <label>
+                <div
+                  className="grid gap-2 text-xs"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="grid gap-1">
                       X
                       <input
                         type="number"
                         min={0}
                         value={mosaicOptions.x}
+                        className="w-full rounded-md border border-input bg-background px-2 py-1"
                         onChange={(event) =>
                           setMosaicById((prev) => ({
                             ...prev,
@@ -183,12 +206,13 @@ export function EditingSuggestions({
                         }
                       />
                     </label>
-                    <label>
+                    <label className="grid gap-1">
                       Y
                       <input
                         type="number"
                         min={0}
                         value={mosaicOptions.y}
+                        className="w-full rounded-md border border-input bg-background px-2 py-1"
                         onChange={(event) =>
                           setMosaicById((prev) => ({
                             ...prev,
@@ -201,13 +225,14 @@ export function EditingSuggestions({
                       />
                     </label>
                   </div>
-                  <div className="field-row">
-                    <label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="grid gap-1">
                       幅
                       <input
                         type="number"
                         min={1}
                         value={mosaicOptions.width}
+                        className="w-full rounded-md border border-input bg-background px-2 py-1"
                         onChange={(event) =>
                           setMosaicById((prev) => ({
                             ...prev,
@@ -219,12 +244,13 @@ export function EditingSuggestions({
                         }
                       />
                     </label>
-                    <label>
+                    <label className="grid gap-1">
                       高さ
                       <input
                         type="number"
                         min={1}
                         value={mosaicOptions.height}
+                        className="w-full rounded-md border border-input bg-background px-2 py-1"
                         onChange={(event) =>
                           setMosaicById((prev) => ({
                             ...prev,
@@ -237,13 +263,14 @@ export function EditingSuggestions({
                       />
                     </label>
                   </div>
-                  <label>
+                  <label className="grid gap-1">
                     強度
                     <input
                       type="number"
                       min={1}
                       max={100}
                       value={mosaicOptions.blur_strength}
+                      className="w-full rounded-md border border-input bg-background px-2 py-1"
                       onChange={(event) =>
                         setMosaicById((prev) => ({
                           ...prev,
@@ -259,12 +286,16 @@ export function EditingSuggestions({
               )}
 
               {action === 'telop' && (
-                <div className="editing-suggestions__options" onClick={(e) => e.stopPropagation()}>
-                  <label>
+                <div
+                  className="grid gap-2 text-xs"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <label className="grid gap-1">
                     テキスト
                     <input
                       type="text"
                       value={telopOptions.text}
+                      className="w-full rounded-md border border-input bg-background px-2 py-1"
                       onChange={(event) =>
                         setTelopById((prev) => ({
                           ...prev,
@@ -276,13 +307,14 @@ export function EditingSuggestions({
                       }
                     />
                   </label>
-                  <div className="field-row">
-                    <label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="grid gap-1">
                       X
                       <input
                         type="number"
                         min={0}
                         value={telopOptions.x}
+                        className="w-full rounded-md border border-input bg-background px-2 py-1"
                         onChange={(event) =>
                           setTelopById((prev) => ({
                             ...prev,
@@ -294,12 +326,13 @@ export function EditingSuggestions({
                         }
                       />
                     </label>
-                    <label>
+                    <label className="grid gap-1">
                       Y
                       <input
                         type="number"
                         min={0}
                         value={telopOptions.y}
+                        className="w-full rounded-md border border-input bg-background px-2 py-1"
                         onChange={(event) =>
                           setTelopById((prev) => ({
                             ...prev,
@@ -312,14 +345,15 @@ export function EditingSuggestions({
                       />
                     </label>
                   </div>
-                  <div className="field-row">
-                    <label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="grid gap-1">
                       フォント
                       <input
                         type="number"
                         min={10}
                         max={200}
                         value={telopOptions.font_size}
+                        className="w-full rounded-md border border-input bg-background px-2 py-1"
                         onChange={(event) =>
                           setTelopById((prev) => ({
                             ...prev,
@@ -331,11 +365,12 @@ export function EditingSuggestions({
                         }
                       />
                     </label>
-                    <label>
+                    <label className="grid gap-1">
                       文字色
                       <input
                         type="text"
                         value={telopOptions.font_color}
+                        className="w-full rounded-md border border-input bg-background px-2 py-1"
                         onChange={(event) =>
                           setTelopById((prev) => ({
                             ...prev,
@@ -348,11 +383,12 @@ export function EditingSuggestions({
                       />
                     </label>
                   </div>
-                  <label>
+                  <label className="grid gap-1">
                     背景色
                     <input
                       type="text"
                       value={telopOptions.background_color ?? ''}
+                      className="w-full rounded-md border border-input bg-background px-2 py-1"
                       onChange={(event) =>
                         setTelopById((prev) => ({
                           ...prev,
@@ -366,15 +402,15 @@ export function EditingSuggestions({
                   </label>
                 </div>
               )}
-            </div>
+            </Card>
           )
         })}
       </div>
 
-      <div className="editing-suggestions__footer">
-        <button type="button" className="primary-button" onClick={onApplyAll}>
+      <div className="border-t border-border p-3 md:p-4">
+        <Button className="w-full text-xs md:text-sm" onClick={onApplyAll}>
           すべての提案を適用
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -386,8 +422,8 @@ function formatTime(seconds: number) {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-function getRiskLevel(level: number) {
-  if (level >= 70) return 'high'
-  if (level >= 30) return 'medium'
-  return 'low'
+function getRiskBadgeVariant(level: number) {
+  if (level >= 70) return 'destructive'
+  if (level >= 30) return 'warning'
+  return 'success'
 }
