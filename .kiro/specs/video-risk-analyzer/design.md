@@ -15,7 +15,6 @@
 - 解析進捗のリアルタイム表示
 
 ### Non-Goals
-- 動画の編集・修正機能
 - SNSへの直接投稿機能
 - リアルタイムストリーミング解析
 - 多言語対応（初期リリースは日本語のみ）
@@ -104,8 +103,8 @@ graph TB
 - AI技術: Vertex AI / Gemini API / Speech-to-Text（必須）
 
 **開発フェーズ目標**:
-- **Phase 1（本開発の目標）**: ローカル環境での動作確認
-- **Phase 2（将来）**: GCPへのデプロイ
+- **Phase 1**: ローカル環境での動作確認（完了）
+- **Phase 2**: GCPへのデプロイ（完了 — Terraform + GitHub Actions CI/CDで実装済み）
 
 ### Deployment Architecture
 
@@ -172,7 +171,7 @@ graph TB
 - `.env.local` - ローカル開発用設定
 - `.env.production` - 本番環境用設定（参照用）
 
-#### GCPデプロイ環境（将来）
+#### GCPデプロイ環境（実装済み）
 
 ```mermaid
 graph TB
@@ -234,7 +233,7 @@ graph TB
 | Redis | Redis container | Memorystore for Redis |
 | Database | PostgreSQL container | Cloud SQL |
 | File Storage | MinIO container | Cloud Storage |
-| 認証 | サービスアカウントキー（JSON） | Workload Identity |
+| 認証 | Application Default Credentials (ADC) | Workload Identity Federation |
 
 ## System Flows
 
@@ -372,6 +371,7 @@ sequenceDiagram
 | 6.1-6.6 | 結果表示 | ResultsComponent | AnalysisResult | 進捗確認・結果取得フロー |
 | 7.1-7.4 | 解析進捗管理 | ProgressComponent, Redis | ProgressUpdate | 進捗確認・結果取得フロー |
 | 8.1-8.6 | 非同期タスク処理 | Celery, Redis, JobListComponent | AnalysisJob | 全フロー |
+| 9.1-9.5 | 動画削除（論理削除） | JobListComponent, ResultsComponent, API Gateway | DELETE /api/jobs/:id | ジョブ一覧・結果表示フロー |
 
 ## Components and Interfaces
 
@@ -379,9 +379,9 @@ sequenceDiagram
 |-----------|--------------|--------|--------------|------------------|-----------|
 | UploadComponent | UI | 動画アップロードUI | 1.1-1.5 | API Gateway (P0) | API |
 | ProgressComponent | UI | 進捗表示UI | 7.1-7.4 | API Gateway (P0) | API |
-| ResultsComponent | UI | 結果表示UI | 6.1-6.6 | API Gateway (P0) | API |
-| JobListComponent | UI | ジョブ一覧UI | 8.3-8.5 | API Gateway (P0) | API |
-| API Gateway | Backend | HTTPリクエスト処理、タスク登録 | All | Redis, Database (P0) | API |
+| ResultsComponent | UI | 結果表示UI | 6.1-6.6, 9.2 | API Gateway (P0) | API |
+| JobListComponent | UI | ジョブ一覧UI | 8.3-8.5, 9.1 | API Gateway (P0) | API |
+| API Gateway | Backend | HTTPリクエスト処理、タスク登録、論理削除 | All | Redis, Database (P0) | API |
 | Celery Worker | Worker | 非同期タスク実行 | 8.1-8.2 | Redis, Orchestrator (P0) | Task |
 | ProgressService | Backend | 進捗管理サービス | 7.1-7.4, 8.4 | Redis (P0) | Service |
 | Orchestrator | Worker | 解析オーケストレーション | 2-5 | Analyzers (P0), RiskEvaluator (P0) | Service |
@@ -405,6 +405,8 @@ sequenceDiagram
 - 進捗状況の取得（Redis経由）
 - 解析結果の取得と返却
 - ジョブ一覧の取得
+- ジョブの論理削除（deleted_atの設定）
+- 動画ファイルのストリーミング配信
 
 **Dependencies**
 - Outbound: Redis — タスク登録、進捗取得 (P0)
@@ -423,6 +425,8 @@ sequenceDiagram
 | GET | /api/jobs/:id/progress | - | ProgressStatus | 404, 500 |
 | GET | /api/jobs/:id/results | - | AnalysisResult | 404, 500 |
 | GET | /api/jobs/:id/events | - | SSE Stream | 404, 500 |
+| GET | /api/jobs/:id/video | - | StreamingResponse (video/mp4) | 404, 500 |
+| DELETE | /api/jobs/:id | - | 204 No Content | 404, 500 |
 
 ```python
 from enum import Enum
@@ -477,7 +481,7 @@ class ProgressStatus(BaseModel):
     job_id: str
     status: JobStatus
     overall: float
-    phases: dict[str, PhaseProgress]  # audio, gemini_video_ocr, risk
+    phases: dict[str, PhaseProgress]  # audio, ocr, video, risk
     estimated_remaining_seconds: float | None
 ```
 
@@ -757,8 +761,8 @@ class RiskLevel(str, Enum):
 
 class RiskSource(str, Enum):
     audio = "audio"
+    ocr = "ocr"
     video = "video"
-    text_in_video = "text_in_video"
 
 class RiskItem(BaseModel):
     id: str
@@ -812,9 +816,18 @@ erDiagram
         string id PK
         string videoId FK
         string status
-        json metadata
+        string purpose
+        string platform
+        string target_audience
+        float overall_score
+        string risk_level
+        json transcription_result
+        json ocr_result
+        json video_analysis_result
+        string error_message
         timestamp createdAt
         timestamp completedAt
+        timestamp deletedAt
     }
 
     RiskItem {
@@ -832,7 +845,8 @@ erDiagram
 **AnalysisJob**
 - 動画解析ジョブの管理エンティティ
 - ステータス遷移: pending → processing → completed/failed
-- メタデータ（用途、投稿先、ターゲット）を保持
+- メタデータ（用途、投稿先、ターゲット）を個別カラムで保持
+- 論理削除対応（deleted_atで管理）
 
 **RiskAssessment**
 - 解析結果の集約エンティティ
@@ -842,7 +856,7 @@ erDiagram
 **RiskItem**
 - 個別のリスク検出結果
 - タイムコード、カテゴリ、スコア、根拠を保持
-- ソース（音声/映像/動画内テキスト）の識別
+- ソース（audio/ocr/video）の識別
 
 ## Error Handling
 
@@ -854,7 +868,7 @@ erDiagram
 - 415: サポート外メディアタイプ → 対応形式を案内
 
 **System Errors (5xx)**
-- 500: 解析処理エラー → エラー内容表示、再試行オプション提供
+- 500: 解析処理エラー → エラー内容表示、ジョブ一覧への遷移および新規解析オプションを提供
 - 503: 外部APIエラー → グレースフルデグラデーション、部分結果の表示
 
 **Business Logic Errors (422)**
