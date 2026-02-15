@@ -264,30 +264,34 @@ export function EditorPage() {
     <div className="editor-page">
       <header className="editor-header">
         <div className="editor-header__left">
-          <button
-            type="button"
-            className="editor-header__back-link"
-            onClick={() => navigate('/jobs')}
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16" role="img" aria-hidden="true">
-              <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z" fill="currentColor" />
-            </svg>
-            ジョブ一覧
-          </button>
+          <div className="editor-header__nav-buttons">
+            <button
+              type="button"
+              className="editor-header__nav-button"
+              onClick={() => navigate('/jobs')}
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" role="img" aria-hidden="true">
+                <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z" fill="currentColor" />
+              </svg>
+              ジョブ一覧
+            </button>
+            <button
+              type="button"
+              className="editor-header__nav-button"
+              onClick={() => navigate('/')}
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" role="img" aria-hidden="true">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
+              </svg>
+              新規解析
+            </button>
+          </div>
           <div className="editor-header__title">
             <h1>Timeline Editor</h1>
             <p>{result?.job.video_name ?? '読み込み中...'}</p>
           </div>
         </div>
         <div className="editor-header__actions">
-          <button
-            type="button"
-            className="editor-header__text-link"
-            onClick={() => navigate('/')}
-          >
-            新規解析
-          </button>
-          <span className="editor-header__divider" aria-hidden="true" />
           <button
             type="button"
             className="ghost-button editor-header__button editor-header__menu"
