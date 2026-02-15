@@ -74,6 +74,7 @@ class AnalysisJob(Base):
     error_message = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
+    deleted_at = Column(DateTime, nullable=True)
 
     video = relationship("Video", back_populates="job")
     risk_items = relationship("RiskItem", back_populates="job", cascade="all, delete-orphan")

@@ -1,7 +1,7 @@
-import { useEffect, useState, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { api, API_BASE_URL } from '../services/api'
-import { AnalysisResult, RiskItem, RiskLevel, RiskCategory, RiskSource } from '../types'
+import { AnalysisResult, RiskCategory, RiskItem, RiskLevel, RiskSource } from '../types'
 import './ResultsComponent.css'
 
 const RISK_LEVEL_LABELS: Record<RiskLevel, string> = {
@@ -95,6 +95,18 @@ export function ResultsComponent() {
   const [error, setError] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>('timestamp')
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+
+  const handleDelete = async () => {
+    if (!id) return
+    if (!window.confirm('このジョブを削除しますか？')) return
+
+    try {
+      await api.delete(`/api/jobs/${id}`)
+      navigate('/jobs')
+    } catch (err) {
+      setError('ジョブの削除に失敗しました')
+    }
+  }
 
   useEffect(() => {
     if (!id) return
