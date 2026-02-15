@@ -86,7 +86,7 @@
 
 #### Acceptance Criteria
 1. The Timeline Editor shall 編集提案パネルをサイドバーとして表示する（デスクトップ: 右側固定、モバイル: アコーディオン）
-2. The Timeline Editor shall 検出された高リスク箇所の件数を表示する
+2. The Timeline Editor shall 検出されたリスク箇所の件数を表示する
 3. The Timeline Editor shall 各提案をカード形式で表示する
 4. The Timeline Editor shall 各提案カードに以下を表示する: リスクレベルバッジ、時間範囲、リスクの理由
 5. When ユーザーが提案カードをクリックする, the Timeline Editor shall 該当提案を選択状態にしタイムライン上で強調表示する

@@ -135,7 +135,6 @@ export function EditorPage() {
   const suggestions = useMemo<SuggestionItem[]>(() => {
     const risks = result?.assessment.risks ?? []
     return risks
-      .filter((risk) => risk.level === 'high')
       .map((risk) => ({
         id: risk.id,
         startTime: risk.timestamp,
