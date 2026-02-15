@@ -56,6 +56,15 @@ export function EditingSuggestions({
   const [mosaicById, setMosaicById] = useState<Record<string, MosaicOptions>>({})
   const [telopById, setTelopById] = useState<Record<string, TelopOptions>>({})
 
+  const readNumberInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target
+    if (value === '') {
+      return null
+    }
+    const next = Number(value)
+    return Number.isNaN(next) ? null : next
+  }
+
   const handleActionChange = (id: string, value: EditActionType) => {
     setActionById((prev) => ({ ...prev, [id]: value }))
     if (value === 'mosaic' && !mosaicById[id]) {
@@ -179,15 +188,19 @@ export function EditingSuggestions({
                         type="number"
                         min={0}
                         value={mosaicOptions.x}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const nextValue = readNumberInput(event)
+                          if (nextValue === null) {
+                            return
+                          }
                           setMosaicById((prev) => ({
                             ...prev,
                             [suggestion.id]: {
                               ...mosaicOptions,
-                              x: Number(event.target.value),
+                              x: nextValue,
                             },
                           }))
-                        }
+                        }}
                       />
                     </label>
                     <label>
@@ -196,15 +209,19 @@ export function EditingSuggestions({
                         type="number"
                         min={0}
                         value={mosaicOptions.y}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const nextValue = readNumberInput(event)
+                          if (nextValue === null) {
+                            return
+                          }
                           setMosaicById((prev) => ({
                             ...prev,
                             [suggestion.id]: {
                               ...mosaicOptions,
-                              y: Number(event.target.value),
+                              y: nextValue,
                             },
                           }))
-                        }
+                        }}
                       />
                     </label>
                   </div>
@@ -215,15 +232,19 @@ export function EditingSuggestions({
                         type="number"
                         min={1}
                         value={mosaicOptions.width}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const nextValue = readNumberInput(event)
+                          if (nextValue === null) {
+                            return
+                          }
                           setMosaicById((prev) => ({
                             ...prev,
                             [suggestion.id]: {
                               ...mosaicOptions,
-                              width: Number(event.target.value),
+                              width: nextValue,
                             },
                           }))
-                        }
+                        }}
                       />
                     </label>
                     <label>
@@ -232,15 +253,19 @@ export function EditingSuggestions({
                         type="number"
                         min={1}
                         value={mosaicOptions.height}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const nextValue = readNumberInput(event)
+                          if (nextValue === null) {
+                            return
+                          }
                           setMosaicById((prev) => ({
                             ...prev,
                             [suggestion.id]: {
                               ...mosaicOptions,
-                              height: Number(event.target.value),
+                              height: nextValue,
                             },
                           }))
-                        }
+                        }}
                       />
                     </label>
                   </div>
@@ -251,15 +276,19 @@ export function EditingSuggestions({
                       min={1}
                       max={100}
                       value={mosaicOptions.blur_strength}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const nextValue = readNumberInput(event)
+                        if (nextValue === null) {
+                          return
+                        }
                         setMosaicById((prev) => ({
                           ...prev,
                           [suggestion.id]: {
                             ...mosaicOptions,
-                            blur_strength: Number(event.target.value),
+                            blur_strength: nextValue,
                           },
                         }))
-                      }
+                      }}
                     />
                   </label>
                 </div>
@@ -290,15 +319,19 @@ export function EditingSuggestions({
                         type="number"
                         min={0}
                         value={telopOptions.x}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const nextValue = readNumberInput(event)
+                          if (nextValue === null) {
+                            return
+                          }
                           setTelopById((prev) => ({
                             ...prev,
                             [suggestion.id]: {
                               ...telopOptions,
-                              x: Number(event.target.value),
+                              x: nextValue,
                             },
                           }))
-                        }
+                        }}
                       />
                     </label>
                     <label>
@@ -307,15 +340,19 @@ export function EditingSuggestions({
                         type="number"
                         min={0}
                         value={telopOptions.y}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const nextValue = readNumberInput(event)
+                          if (nextValue === null) {
+                            return
+                          }
                           setTelopById((prev) => ({
                             ...prev,
                             [suggestion.id]: {
                               ...telopOptions,
-                              y: Number(event.target.value),
+                              y: nextValue,
                             },
                           }))
-                        }
+                        }}
                       />
                     </label>
                   </div>
@@ -327,15 +364,19 @@ export function EditingSuggestions({
                         min={10}
                         max={200}
                         value={telopOptions.font_size}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const nextValue = readNumberInput(event)
+                          if (nextValue === null) {
+                            return
+                          }
                           setTelopById((prev) => ({
                             ...prev,
                             [suggestion.id]: {
                               ...telopOptions,
-                              font_size: Number(event.target.value),
+                              font_size: nextValue,
                             },
                           }))
-                        }
+                        }}
                       />
                     </label>
                     <label>
