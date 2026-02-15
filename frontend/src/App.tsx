@@ -20,9 +20,9 @@ function App() {
     <div className="app">
       <header className="app-header">
         <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <h1>Video Risk Analyzer</h1>
+          <h1>Enjo-Guardian</h1>
         </Link>
-        <p>SNS投稿前の炎上リスクチェック支援ツール</p>
+        <p>動画の炎上リスクからあなたを守ります</p>
         <nav className="app-nav">
           <NavLink to="/" end>
             アップロード
