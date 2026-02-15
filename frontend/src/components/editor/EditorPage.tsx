@@ -20,6 +20,8 @@ interface SuggestionItem {
   reason: string
 }
 
+const MIN_SUGGESTION_RANGE = 0.1
+
 export function EditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -59,12 +61,17 @@ export function EditorPage() {
 
     const fetchData = async () => {
       try {
-        const [resultData, videoData] = await Promise.all([
-          api.get<AnalysisResult>(`/api/jobs/${id}/results`),
-          editorApi.getVideoUrl(id),
-        ])
+        const resultData = await api.get<AnalysisResult>(`/api/jobs/${id}/results`)
         setResult(resultData)
-        setVideoUrl(videoData.url)
+        if (resultData.video_url) {
+          const absoluteUrl = resultData.video_url.startsWith('http')
+            ? resultData.video_url
+            : `${API_BASE_URL}${resultData.video_url}`
+          setVideoUrl(absoluteUrl)
+        } else {
+          const videoData = await editorApi.getVideoUrl(id)
+          setVideoUrl(videoData.url)
+        }
         setPageError(null)
       } catch {
         setPageError('解析結果の取得に失敗しました')
@@ -83,7 +90,7 @@ export function EditorPage() {
       try {
         const status = await editorApi.getExportStatus(id)
         setExportStatus(status.status)
-        setExportProgress(status.progress)
+        setExportProgress(normalizeExportProgress(status.status, status.progress))
         if (status.status === 'failed') {
           setExportError(status.error_message ?? 'エクスポートに失敗しました')
         }
@@ -107,7 +114,7 @@ export function EditorPage() {
       try {
         const status = await editorApi.getExportStatus(id)
         setExportStatus(status.status)
-        setExportProgress(status.progress)
+        setExportProgress(normalizeExportProgress(status.status, status.progress))
         if (status.status === 'failed') {
           setExportError(status.error_message ?? 'エクスポートに失敗しました')
         }
@@ -139,7 +146,10 @@ export function EditorPage() {
       .map((risk) => ({
         id: risk.id,
         startTime: risk.timestamp,
-        endTime: risk.end_timestamp,
+        endTime:
+          risk.end_timestamp > risk.timestamp
+            ? risk.end_timestamp
+            : risk.timestamp + MIN_SUGGESTION_RANGE,
         riskLevel: normalizeRiskScore(risk.score),
         reason: risk.rationale,
       }))
@@ -210,6 +220,17 @@ export function EditorPage() {
     await replaceActions(nextActions)
   }
 
+  const handleSelectSuggestion = (id: string | null) => {
+    setSelectedSuggestion(id)
+    if (!id) {
+      return
+    }
+    const suggestion = suggestions.find((item) => item.id === id)
+    if (suggestion) {
+      setCurrentTime(suggestion.startTime)
+    }
+  }
+
   const handleSave = async () => {
     await replaceActions(
       actions.map((action) => ({
@@ -234,7 +255,7 @@ export function EditorPage() {
       setExportProgress(0)
     } catch (err) {
       setExportError(
-        err instanceof Error ? err.message : 'エクスポート開始に失敗しました'
+        extractApiErrorMessage(err, 'エクスポート開始に失敗しました')
       )
     }
   }
@@ -466,7 +487,7 @@ export function EditorPage() {
                 <EditingSuggestions
                   suggestions={suggestions}
                   selectedSuggestion={selectedSuggestion}
-                  onSelectSuggestion={setSelectedSuggestion}
+                  onSelectSuggestion={handleSelectSuggestion}
                   onSeekTo={setCurrentTime}
                   onApplyAction={handleApplyAction}
                   onApplyAll={handleApplyAll}
@@ -492,7 +513,7 @@ export function EditorPage() {
                 riskLevel: item.riskLevel,
               }))}
               selectedSuggestion={selectedSuggestion}
-              onSelectSuggestion={setSelectedSuggestion}
+              onSelectSuggestion={handleSelectSuggestion}
             />
           </div>
           <div className="editor-panel">
@@ -512,7 +533,7 @@ export function EditorPage() {
           <EditingSuggestions
             suggestions={suggestions}
             selectedSuggestion={selectedSuggestion}
-            onSelectSuggestion={setSelectedSuggestion}
+            onSelectSuggestion={handleSelectSuggestion}
             onSeekTo={setCurrentTime}
             onApplyAction={handleApplyAction}
             onApplyAll={handleApplyAll}
@@ -524,8 +545,32 @@ export function EditorPage() {
 }
 
 function normalizeRiskScore(score: number) {
-  if (score <= 1) {
-    return Math.round(score * 100)
+  if (!Number.isFinite(score)) {
+    return 0
   }
-  return Math.round(score)
+  const normalized = score <= 1 ? score * 100 : score
+  const clamped = Math.min(Math.max(normalized, 0), 100)
+  return Math.round(clamped)
+}
+
+function normalizeExportProgress(status: string, progress: number) {
+  if (!Number.isFinite(progress)) {
+    return status === 'completed' ? 100 : 0
+  }
+  if (status === 'completed') {
+    return 100
+  }
+  const clamped = Math.min(Math.max(progress, 0), 100)
+  return clamped
+}
+
+function extractApiErrorMessage(error: unknown, fallback: string) {
+  if (!(error instanceof Error)) {
+    return fallback
+  }
+  const parts = error.message.split(' - ')
+  if (parts.length > 1) {
+    return parts.slice(1).join(' - ')
+  }
+  return error.message || fallback
 }

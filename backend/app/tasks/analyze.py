@@ -60,11 +60,15 @@ def analyze_video(self, job_id: str, video_path: str, metadata: dict) -> dict:
             # リスクアイテムをDBに保存
             for risk_data in result.get("risks", []):
                 try:
+                    start_time = max(float(risk_data.get("timestamp", 0.0)), 0.0)
+                    end_time = float(risk_data.get("end_timestamp", start_time))
+                    if end_time <= start_time:
+                        end_time = start_time + 0.1
                     risk_item = DBRiskItem(
                         id=uuid.UUID(risk_data["id"]) if "id" in risk_data else uuid.uuid4(),
                         job_id=job.id,
-                        timestamp=float(risk_data.get("timestamp", 0.0)),
-                        end_timestamp=float(risk_data.get("end_timestamp", 0.0)),
+                        timestamp=start_time,
+                        end_timestamp=end_time,
                         category=RiskCategory(risk_data.get("category", "aggressiveness")),
                         subcategory=risk_data.get("subcategory", ""),
                         score=float(risk_data.get("score", 0.0)),

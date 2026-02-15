@@ -16,7 +16,17 @@ async function request<T>(
   })
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`)
+    let detail: string | undefined
+    try {
+      const data = (await response.json()) as { detail?: string }
+      detail = data?.detail
+    } catch {
+      detail = undefined
+    }
+    const message = detail
+      ? `API Error: ${response.status} ${response.statusText} - ${detail}`
+      : `API Error: ${response.status} ${response.statusText}`
+    throw new Error(message)
   }
 
   return response.json()

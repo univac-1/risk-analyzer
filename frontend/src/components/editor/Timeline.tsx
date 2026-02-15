@@ -82,7 +82,7 @@ export function Timeline({
             key={`cut-${index}`}
             className="timeline__cut"
             style={{
-              left: `${(range.start / duration) * 100}%`,
+              left: `${(range.start / safeDuration) * 100}%`,
               width: `${((range.end - range.start) / safeDuration) * 100}%`,
             }}
           />
@@ -98,6 +98,9 @@ export function Timeline({
               style={{
                 left: `${(suggestion.startTime / safeDuration) * 100}%`,
                 width: `${((suggestion.endTime - suggestion.startTime) / safeDuration) * 100}%`,
+              }}
+              onMouseDown={(event) => {
+                event.stopPropagation()
               }}
               onClick={(event) => {
                 event.stopPropagation()
