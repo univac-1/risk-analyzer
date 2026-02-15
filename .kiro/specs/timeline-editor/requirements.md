@@ -110,14 +110,16 @@
 
 ### Requirement 7: ヘッダーアクション
 
-**Objective:** As a 広報担当者, I want 動画のアップロード・保存・エクスポートを行いたい, so that 編集ワークフローを完結できる
+**Objective:** As a 広報担当者, I want ナビゲーション・保存・エクスポートを行いたい, so that 編集ワークフローを完結できる
 
 #### Acceptance Criteria
-1. The Timeline Editor shall ヘッダーに「動画をアップロード」ボタンを提供する
-2. The Timeline Editor shall ヘッダーに「保存」ボタンを提供する
-3. When ユーザーが「保存」ボタンをクリックする, the Timeline Editor shall 編集セッションの状態を保存する
-4. The Timeline Editor shall ヘッダーに「エクスポート」ボタンを提供する
-5. When ユーザーが「エクスポート」ボタンをクリックする, the Timeline Editor shall 編集内容を適用した動画の生成を開始する
+1. The Timeline Editor shall ヘッダー左にジョブ一覧への「← ジョブ一覧」ナビゲーションボタン（tertiary）を提供する
+2. The Timeline Editor shall ヘッダー右にアップロード画面への「新規解析」ナビゲーションボタン（tertiary）を提供し、編集アクションボタン群とは縦線で区切る
+3. The Timeline Editor shall ヘッダーに「保存」ボタン（ghost）を提供する
+4. When ユーザーが「保存」ボタンをクリックする, the Timeline Editor shall 編集セッションの状態を保存する
+5. The Timeline Editor shall ヘッダーに「エクスポート」ボタン（primary）を提供する
+6. When ユーザーが「エクスポート」ボタンをクリックする, the Timeline Editor shall 編集内容を適用した動画の生成を開始する
+7. The Timeline Editor shall グローバルナビゲーションを非表示にし、フルスクリーンレイアウトで表示する
 
 ### Requirement 8: 動画編集処理
 

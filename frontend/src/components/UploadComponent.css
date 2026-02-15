@@ -21,8 +21,8 @@
 
 .drop-zone:hover,
 .drop-zone.dragging {
-  border-color: #007bff;
-  background-color: #f0f7ff;
+  border-color: #2563eb;
+  background-color: #eff6ff;
 }
 
 .drop-zone.has-file {
@@ -66,40 +66,6 @@
   font-size: 0.875rem;
 }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-group label {
-  font-weight: 600;
-  color: #333;
-}
-
-.form-group input,
-.form-group textarea,
-.form-group select {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-family: inherit;
-}
-
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-}
-
-.form-group textarea {
-  resize: vertical;
-  min-height: 60px;
-}
-
 .error-message {
   padding: 0.75rem 1rem;
   background-color: #fff0f0;
@@ -109,22 +75,22 @@
 }
 
 .submit-button {
-  padding: 1rem 2rem;
-  background-color: #007bff;
-  color: white;
+  padding: 0.6rem 1.4rem;
+  background: #2563eb;
+  color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 999px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background 0.2s ease;
 }
 
 .submit-button:hover:not(:disabled) {
-  background-color: #0056b3;
+  background: #1d4ed8;
 }
 
 .submit-button:disabled {
-  background-color: #ccc;
+  background: #93c5fd;
   cursor: not-allowed;
 }

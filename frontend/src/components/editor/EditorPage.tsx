@@ -263,9 +263,33 @@ export function EditorPage() {
   return (
     <div className="editor-page">
       <header className="editor-header">
-        <div>
-          <h1>Timeline Editor</h1>
-          <p>{result?.job.video_name ?? '読み込み中...'}</p>
+        <div className="editor-header__left">
+          <div className="editor-header__nav-buttons">
+            <button
+              type="button"
+              className="editor-header__nav-button"
+              onClick={() => navigate('/jobs')}
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" role="img" aria-hidden="true">
+                <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z" fill="currentColor" />
+              </svg>
+              ジョブ一覧
+            </button>
+            <button
+              type="button"
+              className="editor-header__nav-button"
+              onClick={() => navigate('/')}
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" role="img" aria-hidden="true">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
+              </svg>
+              新規解析
+            </button>
+          </div>
+          <div className="editor-header__title">
+            <h1>Timeline Editor</h1>
+            <p>{result?.job.video_name ?? '読み込み中...'}</p>
+          </div>
         </div>
         <div className="editor-header__actions">
           <button
@@ -283,22 +307,6 @@ export function EditorPage() {
               </svg>
             </span>
             <span className="editor-header__label">提案</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="ghost-button editor-header__button"
-            aria-label="動画をアップロード"
-          >
-            <span className="editor-header__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" role="img">
-                <path
-                  d="M12 4l4 4h-3v6h-2V8H8l4-4zm-6 12h12v2H6v-2z"
-                  fill="currentColor"
-                />
-              </svg>
-            </span>
-            <span className="editor-header__label">動画をアップロード</span>
           </button>
           <button
             type="button"
@@ -367,14 +375,14 @@ export function EditorPage() {
           <div className="editor-error-panel__actions">
             <button
               type="button"
-              className="ghost-button"
+              className="primary-button"
               onClick={() => navigate('/jobs')}
             >
               ジョブ一覧へ
             </button>
             <button
               type="button"
-              className="primary-button"
+              className="ghost-button"
               onClick={() => navigate('/')}
             >
               新規解析へ
@@ -412,7 +420,7 @@ export function EditorPage() {
                 {exportStatus === 'completed' && (
                   <button
                     type="button"
-                    className="ghost-button"
+                    className="secondary-button"
                     onClick={() => navigate(`/jobs/${id}/results`)}
                   >
                     結果に戻る

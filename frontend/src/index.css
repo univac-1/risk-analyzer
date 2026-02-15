@@ -49,16 +49,21 @@ body {
 }
 
 .app-nav a {
-  color: #007bff;
+  color: #64748b;
   text-decoration: none;
   font-weight: 500;
   padding: 0.5rem 1rem;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease;
 }
 
 .app-nav a:hover {
-  background-color: #f0f7ff;
+  color: #334155;
+}
+
+.app-nav a.active {
+  color: #0f172a;
+  border-bottom-color: #0f172a;
 }
 
 .app-main {

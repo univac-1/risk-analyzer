@@ -1,25 +1,14 @@
 import { useState, DragEvent, ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
-import { Platform, AnalysisJob } from '../types'
+import { AnalysisJob } from '../types'
 import './UploadComponent.css'
-
-const PLATFORMS: { value: Platform; label: string }[] = [
-  { value: 'twitter', label: 'Twitter/X' },
-  { value: 'instagram', label: 'Instagram' },
-  { value: 'youtube', label: 'YouTube' },
-  { value: 'tiktok', label: 'TikTok' },
-  { value: 'other', label: 'その他' },
-]
 
 const MAX_FILE_SIZE_MB = 100
 
 export function UploadComponent() {
   const navigate = useNavigate()
   const [file, setFile] = useState<File | null>(null)
-  const [purpose, setPurpose] = useState('')
-  const [platform, setPlatform] = useState<Platform>('twitter')
-  const [targetAudience, setTargetAudience] = useState('')
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -80,25 +69,15 @@ export function UploadComponent() {
       return
     }
 
-    if (!purpose.trim()) {
-      setError('用途を入力してください')
-      return
-    }
-
-    if (!targetAudience.trim()) {
-      setError('想定ターゲットを入力してください')
-      return
-    }
-
     setIsUploading(true)
     setError(null)
 
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('purpose', purpose)
-      formData.append('platform', platform)
-      formData.append('target_audience', targetAudience)
+      formData.append('purpose', '-')
+      formData.append('platform', 'other')
+      formData.append('target_audience', '-')
 
       const response = await api.upload<AnalysisJob>('/api/videos', formData)
       navigate(`/jobs/${response.id}/progress`)
@@ -141,46 +120,6 @@ export function UploadComponent() {
               </div>
             )}
           </label>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="purpose">用途</label>
-          <textarea
-            id="purpose"
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
-            placeholder="例: 新製品の紹介動画、キャンペーン告知など"
-            rows={3}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="platform">投稿先媒体</label>
-          <select
-            id="platform"
-            value={platform}
-            onChange={(e) => setPlatform(e.target.value as Platform)}
-            required
-          >
-            {PLATFORMS.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="target-audience">想定ターゲット</label>
-          <textarea
-            id="target-audience"
-            value={targetAudience}
-            onChange={(e) => setTargetAudience(e.target.value)}
-            placeholder="例: 20-30代の女性、IT業界の技術者など"
-            rows={2}
-            required
-          />
         </div>
 
         {error && <div className="error-message">{error}</div>}
