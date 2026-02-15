@@ -2,7 +2,8 @@
   position: relative;
   height: 140px;
   width: 100%;
-  background: #0b1120;
+  background: var(--muted);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 0.5rem 0.75rem;
 }
@@ -13,23 +14,23 @@
 }
 
 .risk-graph__grid {
-  stroke: rgba(148, 163, 184, 0.4);
+  stroke: color-mix(in oklch, var(--border), transparent 40%);
   stroke-width: 0.3;
   stroke-dasharray: 2, 2;
 }
 
 .risk-graph__highlight {
-  fill: rgba(239, 68, 68, 0.12);
+  fill: color-mix(in oklch, var(--destructive), transparent 90%);
 }
 
 .risk-graph__line {
   fill: none;
-  stroke: #38bdf8;
+  stroke: var(--primary);
   stroke-width: 0.6;
 }
 
 .risk-graph__cursor {
-  stroke: rgba(56, 189, 248, 0.9);
+  stroke: color-mix(in oklch, var(--primary), transparent 20%);
   stroke-width: 0.4;
 }
 
@@ -37,7 +38,7 @@
   position: absolute;
   left: 0.75rem;
   font-size: 0.7rem;
-  color: rgba(226, 232, 240, 0.8);
+  color: var(--muted-foreground);
 }
 
 .risk-graph__label--top {
@@ -54,8 +55,8 @@
   top: 0.5rem;
   padding: 0.3rem 0.6rem;
   border-radius: 10px;
-  background: rgba(15, 23, 42, 0.75);
-  color: rgba(248, 250, 252, 0.9);
+  background: color-mix(in oklch, var(--card), transparent 20%);
+  color: var(--foreground);
   font-size: 0.75rem;
   display: flex;
   gap: 0.3rem;
@@ -67,15 +68,15 @@
 }
 
 .risk-graph__current-value--high {
-  color: #f87171;
+  color: var(--destructive);
 }
 
 .risk-graph__current-value--medium {
-  color: #fbbf24;
+  color: var(--warning);
 }
 
 .risk-graph__current-value--low {
-  color: #4ade80;
+  color: var(--success);
 }
 
 @media (max-width: 640px) {

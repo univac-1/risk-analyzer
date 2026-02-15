@@ -1,16 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  Plus,
+  Save,
+  Undo2,
+  ArrowLeft,
+} from 'lucide-react'
 
 import { api, API_BASE_URL } from '../../services/api'
 import { editorApi } from '../../services/editorApi'
 import type { AnalysisResult, EditActionInput } from '../../types'
 import { useEditSession } from '../../hooks/useEditSession'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
 import { VideoPreview } from './VideoPreview'
 import { VideoControls } from './VideoControls'
 import { RiskGraph } from './RiskGraph'
 import { Timeline } from './Timeline'
 import { EditingSuggestions } from './EditingSuggestions'
-import './EditorPage.css'
 
 interface SuggestionItem {
   id: string
@@ -34,8 +45,8 @@ export function EditorPage() {
   const [exportStatus, setExportStatus] = useState<string | null>(null)
   const [exportProgress, setExportProgress] = useState(0)
   const [exportError, setExportError] = useState<string | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
+  const [isSuggestionsExpanded, setIsSuggestionsExpanded] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   const {
@@ -260,195 +271,139 @@ export function EditorPage() {
   }
 
   return (
-    <div className="editor-page">
-      <header className="editor-header">
-        <div className="editor-header__left">
-          <div className="editor-header__nav-buttons">
-            <button
-              type="button"
-              className="editor-header__nav-button"
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="flex flex-col gap-3 border-b border-border bg-card px-3 py-3 md:flex-row md:items-center md:justify-between md:px-6">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-transparent"
               onClick={() => navigate('/jobs')}
             >
-              <svg viewBox="0 0 24 24" width="15" height="15" role="img" aria-hidden="true">
-                <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z" fill="currentColor" />
-              </svg>
+              <ArrowLeft className="h-4 w-4" />
               ジョブ一覧
-            </button>
-            <button
-              type="button"
-              className="editor-header__nav-button"
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-transparent"
               onClick={() => navigate('/')}
             >
-              <svg viewBox="0 0 24 24" width="15" height="15" role="img" aria-hidden="true">
-                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
-              </svg>
+              <Plus className="h-4 w-4" />
               新規解析
-            </button>
+            </Button>
           </div>
-          <div className="editor-header__title">
-            <h1>Timeline Editor</h1>
-            <p>{result?.job.video_name ?? '読み込み中...'}</p>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-mono text-base font-semibold md:text-lg">
+                Timeline Editor
+              </h1>
+              <Badge variant="warning" className="text-[10px] md:text-xs">
+                EDIT
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground md:text-sm">
+              {result?.job.video_name ?? '読み込み中...'}
+            </p>
           </div>
         </div>
-        <div className="editor-header__actions">
-          <button
-            type="button"
-            className="ghost-button editor-header__button editor-header__menu"
-            onClick={() => setSidebarOpen((prev) => !prev)}
-            aria-label="編集提案を開閉"
-          >
-            <span className="editor-header__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" role="img">
-                <path
-                  d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"
-                  fill="currentColor"
-                />
-              </svg>
-            </span>
-            <span className="editor-header__label">提案</span>
-          </button>
-          <button
-            type="button"
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-transparent"
             onClick={handleSave}
-            className="ghost-button editor-header__button"
             disabled={saving}
-            aria-label="保存"
           >
-            <span className="editor-header__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" role="img">
-                <path
-                  d="M5 4h10l4 4v12H5V4zm2 2v4h8V6H7zm0 6v6h10v-8H7z"
-                  fill="currentColor"
-                />
-              </svg>
-            </span>
-            <span className="editor-header__label">保存</span>
-          </button>
-          <button
-            type="button"
+            <Save className="h-4 w-4" />
+            保存
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-transparent"
             onClick={() => void undo()}
-            className="ghost-button editor-header__button"
             disabled={!canUndo || saving}
-            aria-label="元に戻す"
           >
-            <span className="editor-header__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" role="img">
-                <path
-                  d="M12 5a7 7 0 0 1 7 7h-2a5 5 0 0 0-5-5H8.8l2.6 2.6L10 11 5 6l5-5 1.4 1.4L8.8 5H12z"
-                  fill="currentColor"
-                />
-              </svg>
-            </span>
-            <span className="editor-header__label">Undo</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleExport}
-            className="primary-button editor-header__button"
-            aria-label="エクスポート"
-          >
-            <span className="editor-header__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" role="img">
-                <path
-                  d="M12 20l-4-4h3V8h2v8h3l-4 4zm-6-14h12v2H6V6z"
-                  fill="currentColor"
-                />
-              </svg>
-            </span>
-            <span className="editor-header__label">エクスポート</span>
-          </button>
+            <Undo2 className="h-4 w-4" />
+            Undo
+          </Button>
+          <Button size="sm" onClick={handleExport}>
+            <Download className="h-4 w-4" />
+            エクスポート
+          </Button>
         </div>
       </header>
 
       {(loading || sessionError || pageError) && (
-        <div className="editor-status">
+        <div className="flex flex-wrap gap-3 px-4 py-2 text-sm text-muted-foreground md:px-6">
           {loading && <span>読み込み中...</span>}
-          {sessionError && <span className="error">{sessionError}</span>}
-          {pageError && <span className="error">{pageError}</span>}
+          {sessionError && <span className="text-destructive">{sessionError}</span>}
+          {pageError && <span className="text-destructive">{pageError}</span>}
         </div>
       )}
 
       {pageError && (
-        <div className="editor-error-panel">
+        <div className="mx-4 mt-2 grid gap-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive md:mx-6">
           <p>ジョブ一覧から編集対象を選び直してください。</p>
-          <div className="editor-error-panel__actions">
-            <button
-              type="button"
-              className="primary-button"
-              onClick={() => navigate('/jobs')}
-            >
-              ジョブ一覧へ
-            </button>
-            <button
-              type="button"
-              className="ghost-button"
-              onClick={() => navigate('/')}
-            >
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => navigate('/jobs')}>ジョブ一覧へ</Button>
+            <Button variant="outline" onClick={() => navigate('/')}>
               新規解析へ
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {(exportStatus || exportError) && (
-        <div className="editor-export">
+        <div className="flex flex-wrap items-center gap-4 border-b border-border bg-card/70 px-4 py-3 text-sm md:px-6">
           {exportStatus && (
             <>
               <div>
                 <strong>エクスポート状況:</strong> {exportStatus}
               </div>
-              <div className="editor-export__progress">
+              <div className="flex items-center gap-2">
                 <span>{exportProgress.toFixed(0)}%</span>
-                <div className="editor-export__bar">
+                <div className="h-1.5 w-40 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="editor-export__fill"
+                    className="h-full bg-primary"
                     style={{ width: `${exportProgress}%` }}
                   />
                 </div>
               </div>
-              <div className="editor-export__actions">
+              <div className="flex flex-wrap gap-2">
                 {exportStatus === 'completed' && (
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={handleDownload}
-                  >
-                    ダウンロード
-                  </button>
+                  <Button onClick={handleDownload}>ダウンロード</Button>
                 )}
                 {exportStatus === 'completed' && (
-                  <button
-                    type="button"
-                    className="secondary-button"
+                  <Button
+                    variant="outline"
                     onClick={() => navigate(`/jobs/${id}/results`)}
                   >
                     結果に戻る
-                  </button>
+                  </Button>
                 )}
                 {exportStatus === 'failed' && (
-                  <button
-                    type="button"
-                    className="ghost-button"
-                    onClick={handleRetryExport}
-                  >
+                  <Button variant="outline" onClick={handleRetryExport}>
                     再試行
-                  </button>
+                  </Button>
                 )}
               </div>
             </>
           )}
-          {exportError && <span className="error">{exportError}</span>}
+          {exportError && <span className="text-destructive">{exportError}</span>}
         </div>
       )}
 
-      <div className="editor-body">
-        <section className="editor-main">
+      <div className="flex flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
+        <div className="flex flex-1 flex-col md:overflow-hidden">
           {!result && !pageError && (
-            <div className="editor-empty">
+            <div className="px-4 py-3 text-sm text-muted-foreground md:px-6">
               解析結果を読み込み中です。処理が完了していない場合はジョブ一覧から確認できます。
             </div>
           )}
-          <div className="editor-panel">
+          <div className="flex-shrink-0 border-b border-border bg-card/50 p-2 md:flex-1 md:p-6">
             <VideoPreview
               currentTime={currentTime}
               isPlaying={isPlaying}
@@ -459,17 +414,25 @@ export function EditorPage() {
               videoRef={videoRef}
             />
           </div>
-          <div className="editor-mobile-suggestions">
+
+          <div className="flex-shrink-0 border-b border-border bg-card md:hidden">
             <button
               type="button"
-              className="editor-mobile-suggestions__toggle"
-              onClick={() => setSidebarOpen((prev) => !prev)}
+              className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-accent/50"
+              onClick={() => setIsSuggestionsExpanded((prev) => !prev)}
             >
-              編集提案 ({suggestionCount}件)
-              <span aria-hidden="true">{sidebarOpen ? '▲' : '▼'}</span>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                編集提案 ({suggestionCount}件)
+              </div>
+              {isSuggestionsExpanded ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
             </button>
-            {sidebarOpen && (
-              <div className="editor-mobile-suggestions__content">
+            {isSuggestionsExpanded && (
+              <div className="max-h-80 overflow-y-auto">
                 <EditingSuggestions
                   suggestions={suggestions}
                   selectedSuggestion={selectedSuggestion}
@@ -481,28 +444,53 @@ export function EditorPage() {
               </div>
             )}
           </div>
-          <div className="editor-panel">
-            <RiskGraph
-              riskData={riskData.length ? riskData : [{ timestamp: 0, riskLevel: 0 }]}
-              currentTime={currentTime}
-              duration={effectiveDuration}
-            />
-            <Timeline
-              duration={effectiveDuration}
-              currentTime={currentTime}
-              onSeek={setCurrentTime}
-              cutRanges={cutRanges}
-              suggestions={suggestions.map((item) => ({
-                id: item.id,
-                startTime: item.startTime,
-                endTime: item.endTime,
-                riskLevel: item.riskLevel,
-              }))}
-              selectedSuggestion={selectedSuggestion}
-              onSelectSuggestion={setSelectedSuggestion}
-            />
+
+          <div className="h-56 flex-shrink-0 border-b border-border bg-card p-3 md:h-64 md:p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-xs font-semibold md:text-sm">
+                タイムライン & リスク分析
+              </h2>
+              <div className="hidden items-center gap-4 text-xs text-muted-foreground md:flex">
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-success" />
+                  低リスク (0-30%)
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-warning" />
+                  中リスク (31-70%)
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-destructive" />
+                  高リスク (71-100%)
+                </span>
+              </div>
+            </div>
+            <div className="relative h-full">
+              <RiskGraph
+                riskData={
+                  riskData.length ? riskData : [{ timestamp: 0, riskLevel: 0 }]
+                }
+                currentTime={currentTime}
+                duration={effectiveDuration}
+              />
+              <Timeline
+                duration={effectiveDuration}
+                currentTime={currentTime}
+                onSeek={setCurrentTime}
+                cutRanges={cutRanges}
+                suggestions={suggestions.map((item) => ({
+                  id: item.id,
+                  startTime: item.startTime,
+                  endTime: item.endTime,
+                  riskLevel: item.riskLevel,
+                }))}
+                selectedSuggestion={selectedSuggestion}
+                onSelectSuggestion={setSelectedSuggestion}
+              />
+            </div>
           </div>
-          <div className="editor-panel">
+
+          <div className="flex-shrink-0 border-b border-border bg-card px-3 py-2 md:px-6 md:py-4">
             <VideoControls
               currentTime={currentTime}
               duration={effectiveDuration}
@@ -513,9 +501,9 @@ export function EditorPage() {
               onToggleFullscreen={handleToggleFullscreen}
             />
           </div>
-        </section>
+        </div>
 
-        <aside className={`editor-sidebar${sidebarOpen ? ' is-open' : ''}`}>
+        <aside className="hidden w-80 flex-shrink-0 border-l border-border bg-card md:block">
           <EditingSuggestions
             suggestions={suggestions}
             selectedSuggestion={selectedSuggestion}
