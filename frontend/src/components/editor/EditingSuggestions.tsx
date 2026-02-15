@@ -78,7 +78,7 @@ export function EditingSuggestions({
   }
 
   const suggestionCountLabel = useMemo(
-    () => `${suggestions.length}件の高リスク箇所が検出されました`,
+    () => `${suggestions.length}件のリスク箇所が検出されました`,
     [suggestions.length]
   )
 
