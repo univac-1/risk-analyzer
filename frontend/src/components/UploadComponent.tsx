@@ -151,6 +151,11 @@ export function UploadComponent() {
           <span className="sample-button-hint">動画をお持ちでない方はこちら</span>
         </div>
 
+        <div className="upload-notice">
+          <span className="upload-notice-icon">⚠️</span>
+          <span>アップロードした動画と解析結果は、全世界のユーザーから閲覧可能になります。個人情報や機密情報が含まれる動画のアップロードはご注意ください。</span>
+        </div>
+
         {error && <div className="error-message">{error}</div>}
 
         <button
