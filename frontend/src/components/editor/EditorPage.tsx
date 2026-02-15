@@ -20,6 +20,8 @@ interface SuggestionItem {
   reason: string
 }
 
+const MIN_SUGGESTION_RANGE = 0.1
+
 export function EditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -144,7 +146,10 @@ export function EditorPage() {
       .map((risk) => ({
         id: risk.id,
         startTime: risk.timestamp,
-        endTime: risk.end_timestamp,
+        endTime:
+          risk.end_timestamp > risk.timestamp
+            ? risk.end_timestamp
+            : risk.timestamp + MIN_SUGGESTION_RANGE,
         riskLevel: normalizeRiskScore(risk.score),
         reason: risk.rationale,
       }))
@@ -213,6 +218,17 @@ export function EditorPage() {
       options: null,
     }))
     await replaceActions(nextActions)
+  }
+
+  const handleSelectSuggestion = (id: string | null) => {
+    setSelectedSuggestion(id)
+    if (!id) {
+      return
+    }
+    const suggestion = suggestions.find((item) => item.id === id)
+    if (suggestion) {
+      setCurrentTime(suggestion.startTime)
+    }
   }
 
   const handleSave = async () => {
@@ -471,7 +487,7 @@ export function EditorPage() {
                 <EditingSuggestions
                   suggestions={suggestions}
                   selectedSuggestion={selectedSuggestion}
-                  onSelectSuggestion={setSelectedSuggestion}
+                  onSelectSuggestion={handleSelectSuggestion}
                   onSeekTo={setCurrentTime}
                   onApplyAction={handleApplyAction}
                   onApplyAll={handleApplyAll}
@@ -497,7 +513,7 @@ export function EditorPage() {
                 riskLevel: item.riskLevel,
               }))}
               selectedSuggestion={selectedSuggestion}
-              onSelectSuggestion={setSelectedSuggestion}
+              onSelectSuggestion={handleSelectSuggestion}
             />
           </div>
           <div className="editor-panel">
@@ -517,7 +533,7 @@ export function EditorPage() {
           <EditingSuggestions
             suggestions={suggestions}
             selectedSuggestion={selectedSuggestion}
-            onSelectSuggestion={setSelectedSuggestion}
+            onSelectSuggestion={handleSelectSuggestion}
             onSeekTo={setCurrentTime}
             onApplyAction={handleApplyAction}
             onApplyAll={handleApplyAll}

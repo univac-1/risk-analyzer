@@ -125,14 +125,22 @@ export function EditingSuggestions({
             <div
               key={suggestion.id}
               className={`editing-suggestions__card${isSelected ? ' is-selected' : ''}`}
-              onClick={() =>
-                onSelectSuggestion(isSelected ? null : suggestion.id)
-              }
+              onClick={() => {
+                const nextId = isSelected ? null : suggestion.id
+                onSelectSuggestion(nextId)
+                if (nextId) {
+                  onSeekTo(suggestion.startTime)
+                }
+              }}
               role="button"
               tabIndex={0}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
-                  onSelectSuggestion(isSelected ? null : suggestion.id)
+                  const nextId = isSelected ? null : suggestion.id
+                  onSelectSuggestion(nextId)
+                  if (nextId) {
+                    onSeekTo(suggestion.startTime)
+                  }
                 }
               }}
             >
