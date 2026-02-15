@@ -1,48 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
-  --background: #1b1b1f;
-  --foreground: #e5e7eb;
-  --card: #232329;
-  --card-foreground: #e5e7eb;
-  --popover: #25252b;
-  --popover-foreground: #e5e7eb;
-  --primary: #2563eb;
-  --primary-foreground: #f8fafc;
-  --secondary: #2a2a32;
-  --secondary-foreground: #e5e7eb;
-  --muted: #2a2a32;
-  --muted-foreground: #a1a1aa;
-  --accent: #30303a;
-  --accent-foreground: #e5e7eb;
-  --destructive: #ef4444;
-  --destructive-foreground: #fef2f2;
-  --warning: #f59e0b;
-  --warning-foreground: #111827;
-  --success: #22c55e;
-  --success-foreground: #f0fdf4;
-  --border: #2f2f37;
-  --input: #2f2f37;
-  --ring: #3b82f6;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: #e5e7eb;
-  --sidebar-primary: #2563eb;
-  --sidebar-primary-foreground: #f8fafc;
-  --sidebar-accent: #2a2a32;
-  --sidebar-accent-foreground: #e5e7eb;
-  --sidebar-border: #2f2f37;
-  --sidebar-ring: #3b82f6;
-}
-
-.light {
   --background: oklch(0.98 0 0);
   --foreground: oklch(0.15 0 0);
   --card: oklch(0.96 0 0);

@@ -4,12 +4,9 @@ import { ProgressComponent } from './components/ProgressComponent'
 import { ResultsComponent } from './components/ResultsComponent'
 import { JobListComponent } from './components/JobListComponent'
 import { EditorPage } from './components/editor/EditorPage'
-import { useTheme } from './hooks/useTheme'
-
 function App() {
   const location = useLocation()
   const isEditorPage = /^\/jobs\/[^/]+\/editor$/.test(location.pathname)
-  const { theme, toggleTheme } = useTheme()
 
   if (isEditorPage) {
     return (
@@ -33,13 +30,6 @@ function App() {
           <NavLink to="/jobs">
             ジョブ一覧
           </NavLink>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="rounded-full border border-border px-4 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-foreground"
-          >
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
         </nav>
       </header>
       <main className="app-main">
